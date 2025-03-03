@@ -1,2 +1,0 @@
-# planit
-Project Management App 
