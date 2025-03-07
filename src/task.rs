@@ -23,65 +23,26 @@
 // SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                 //
 ////////////////////////////////////////////////////////////////////////////
 
-use crossterm::event::{self, Event, KeyCode, KeyEventKind};
-use ratatui::{text::Text, Frame};
+use std::time::SystemTime;
 
-/// Handles Drawing of TUI
+/// A struct representing the a task
 ///
-/// This function takes the frame and renders all widgets that should be shown
-/// based on the app's state
-///
-/// # Arguments
-/// - `frame`: The ratatui::Frame object used to render widgets
-///
-/// # Returns
-/// - None
-fn draw(frame: &mut Frame) {
-    let text = Text::raw("Hello world!");
-    frame.render_widget(text, frame.area());
-}
-
-/// Handles Events
-///
-/// This function handles all events from the user, etc.
-///
-/// # Arguments
-/// - None
-///
-/// # Returns
-/// - Result containing `true` if app should quit, `false` otherwise
-fn handle_events() -> std::io::Result<bool> {
-    match event::read()? {
-        Event::Key(key) if key.kind == KeyEventKind::Press => match key.code {
-            KeyCode::Char('q') => Ok(true),
-            _ => Ok(false),
-        },
-        _ => Ok(false),
-    }
-}
-
-/// Runs the terminal application
-///
-/// This function contains the super loop that handles rendering and events. It
-/// will not exit until the application should close
-///
-/// # Arguments
-/// - `terminal`: the terminal to use for drawing
-///
-/// # Returns
-/// - Any errors encountered
-fn run(terminal: &mut ratatui::DefaultTerminal) -> std::io::Result<()> {
-    loop {
-        terminal.draw(draw)?;
-        if handle_events()? {
-            break Ok(());
-        }
-    }
-}
-
-fn main() -> std::io::Result<()> {
-    let mut terminal = ratatui::init();
-    let result = run(&mut terminal);
-    ratatui::restore();
-    result
+/// Tasks are the basic unit of work. Everything else is made of tasks
+pub struct Task {
+    /// The unique identifier for each task. This `id` is guaranteed to be constant
+    id: u64,
+    /// The `name` (or title) for the task
+    name: String,
+    /// A more detailed description of the task
+    description: String,
+    /// The date the task was created
+    created: Option<SystemTime>,
+    /// The date that work for the task is expected to start
+    start: Option<SystemTime>,
+    /// The date that work for the task is expected to be complete
+    end: Option<SystemTime>,
+    /// How often the task should repeat
+    repeat: Option<String>, // TODO: This should be a more specific value
+    /// Any user defined tags the task has
+    tags: Vec<String>,
 }
