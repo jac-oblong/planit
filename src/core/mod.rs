@@ -23,4 +23,8 @@
 // SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                 //
 ////////////////////////////////////////////////////////////////////////////
 
-pub mod core;
+pub mod planet; // basic unit of work ( task / issue )
+                // pub mod asteroid; // interrupting tasks / bugs
+                // pub mod solar_system; // collection of planets ( milestone )
+                // pub mod galaxy; // collection of solar-systems ( goal )
+                // pub mod universe; // collection of galaxies ( project )
