@@ -24,16 +24,20 @@
 ////////////////////////////////////////////////////////////////////////////
 
 use std::time::SystemTime;
+use uuid::Uuid;
 
 /// An enum representing the status of a Planet
 ///
-/// Planet's status should follow the pattern `Todo -> Next -> Start -> Done`.
-/// There are also `Hold` and `Cancel` states if they are needed.
+/// Planet's status should follow the pattern `Todo -> Next -> Start ->
+/// `Done`. There are also `Block`, `Hold` and `Cancel` states if they are
+/// needed.
 ///
 /// Only `Done` and `Cancel` are final states.
 pub enum PlanetStatus {
     /// Planet's that are `Todo` are in the "backlog"
     Todo,
+    // Planet's that are `Block` cannot be started due to a pre-requesite
+    Block,
     /// Planet's that are `Next` are staged to be started
     Next,
     /// Planet's that are `Start` are currently being worked on
@@ -53,11 +57,11 @@ pub enum PlanetStatus {
 /// will ever be the same. They also have a name (or title), description,
 /// creation date, and a history of all changes.
 ///
-/// Optionally, they can have start and end dates, repetition, and user defined
-/// tags.
+/// These features are all built-in and cannot be disabled. Other features (like
+/// dates, pre/co-requesites, etc.) are enabled, but can safely be ignored.
 pub struct Planet {
     /// The unique & constant identifier for each planet
-    id: u64,
+    uuid: Uuid,
     /// The `name` (or title) for the planet
     name: String,
     /// A more detailed description of the planet
@@ -66,12 +70,55 @@ pub struct Planet {
     created: SystemTime,
     /// The current state of the planet
     status: PlanetStatus,
+
     /// The date that work for the planet is expected to start
     start: Option<SystemTime>,
     /// The date that work for the planet is expected to be complete
     end: Option<SystemTime>,
     /// How often the planet should repeat
     repeat: Option<String>, // TODO: This should be a more specific value
+
+    // List of uuids for other planets that need to be done before this one can
+    // be started
+    prereqs: Vec<Uuid>,
+    // List of uuids for other planets that will be `Started` at the same time as
+    // this
+    coreqs: Vec<Uuid>,
+
     /// Any user defined tags the planet has
     tags: Vec<String>,
+}
+
+impl Planet {
+    /// Creates a new Planet
+    ///
+    /// This function creates a new Planet from all the parameters given. This
+    /// function should only be used to create a brand new Planet. That is, it
+    /// should not be used when initializing a Planet read from a file.
+    ///
+    /// # Arguments
+    /// - `name`: The name field of the new Planet
+    /// - `description`: The description field of the new Planet
+    ///
+    /// # Returns
+    /// - A new Planet with all fields initialized appropriately
+    fn new(name: String, description: String) -> Planet {
+        Planet {
+            uuid: Uuid::new_v4(),
+            name: name.clone(),
+            description: description.clone(),
+            created: SystemTime::now(),
+            status: PlanetStatus::Todo,
+            start: None,
+            end: None,
+            repeat: None,
+            prereqs: Vec::new(),
+            coreqs: Vec::new(),
+            tags: Vec::new(),
+        }
+    }
+
+    fn import() -> Planet {}
+
+    fn export(self) {}
 }
