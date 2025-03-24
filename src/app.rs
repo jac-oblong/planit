@@ -25,25 +25,74 @@
 //                                                                        //
 ////////////////////////////////////////////////////////////////////////////
 
-use planit::app::App;
-use ratatui;
-use std::error::Error;
+use crossterm::event::{self, Event, KeyCode, KeyEventKind};
+use ratatui::{text::Text, DefaultTerminal, Frame};
+use std::io::Result;
 
-fn main() -> Result<(), Box<dyn Error>> {
-    // setup the terminal
-    let mut terminal = ratatui::init();
+/// The planit application
+///
+/// This struct encapsulates everything in the planit app. It should only be
+/// necessary to create and run
+pub struct App {}
 
-    // create application and run it
-    let app = App::new();
-    let res = app.run(&mut terminal);
-
-    // restore the terminal
-    ratatui::restore();
-
-    match res {
-        Ok(()) => (),
-        Err(err) => println!("{err:?}"),
+impl App {
+    /// Creates a new App
+    pub fn new() -> Self {
+        App {}
     }
 
-    Ok(())
+    /// Runs the application
+    ///
+    /// This function contains the super loop that handles drawing to the screen
+    /// and handling all events. It will not exit until the application should
+    /// close
+    ///
+    /// # Arguments
+    /// - `terminal`: the terminal to use for drawing
+    ///
+    /// # Returns
+    /// - Any errors encountered
+    pub fn run(&self, terminal: &mut DefaultTerminal) -> Result<()> {
+        loop {
+            let draw_callable = |frame: &mut Frame| self.draw(frame);
+            terminal.draw(&draw_callable)?;
+            if self.handle_events()? {
+                break Ok(());
+            }
+        }
+    }
+
+    /// Handles Drawing of TUI
+    ///
+    /// This function takes the frame and renders all widgets that should be shown
+    /// based on the app's state
+    ///
+    /// # Arguments
+    /// - `frame`: The ratatui::Frame object used to render widgets
+    ///
+    /// # Returns
+    /// - None
+    fn draw(&self, frame: &mut Frame) {
+        let text = Text::raw("Hello world!");
+        frame.render_widget(text, frame.area());
+    }
+
+    /// Handles Events
+    ///
+    /// This function handles all events from the user, etc.
+    ///
+    /// # Arguments
+    /// - None
+    ///
+    /// # Returns
+    /// - Result containing `true` if app should quit, `false` otherwise
+    fn handle_events(&self) -> std::io::Result<bool> {
+        match event::read()? {
+            Event::Key(key) if key.kind == KeyEventKind::Press => match key.code {
+                KeyCode::Char('q') => Ok(true),
+                _ => Ok(false),
+            },
+            _ => Ok(false),
+        }
+    }
 }

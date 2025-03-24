@@ -119,8 +119,4 @@ impl Planet {
             tags: Vec::new(),
         }
     }
-
-    fn import() -> Planet {}
-
-    fn export(self) {}
 }
