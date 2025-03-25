@@ -34,7 +34,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut terminal = ratatui::init();
 
     // create application and run it
-    let app = App::new();
+    let mut app = App::new();
     let res = app.run(&mut terminal);
 
     // restore the terminal

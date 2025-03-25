@@ -25,20 +25,32 @@
 //                                                                        //
 ////////////////////////////////////////////////////////////////////////////
 
+use std::io::Result;
+
 use crossterm::event::{self, Event, KeyCode, KeyEventKind};
 use ratatui::{text::Text, DefaultTerminal, Frame};
-use std::io::Result;
+
+use crate::core::planet::Planet;
 
 /// The planit application
 ///
 /// This struct encapsulates everything in the planit app. It should only be
 /// necessary to create and run
-pub struct App {}
+pub struct App {
+    /// Vector of planets that the App currently knows about
+    planets: Vec<Planet>,
+
+    /// Whether or not the application should close
+    should_quit: bool,
+}
 
 impl App {
     /// Creates a new App
     pub fn new() -> Self {
-        App {}
+        App {
+            planets: Vec::new(),
+            should_quit: false,
+        }
     }
 
     /// Runs the application
@@ -52,14 +64,13 @@ impl App {
     ///
     /// # Returns
     /// - Any errors encountered
-    pub fn run(&self, terminal: &mut DefaultTerminal) -> Result<()> {
-        loop {
+    pub fn run(&mut self, terminal: &mut DefaultTerminal) -> Result<()> {
+        while !self.should_quit {
             let draw_callable = |frame: &mut Frame| self.draw(frame);
             terminal.draw(&draw_callable)?;
-            if self.handle_events()? {
-                break Ok(());
-            }
+            self.handle_events()?;
         }
+        Ok(())
     }
 
     /// Handles Drawing of TUI
@@ -85,14 +96,17 @@ impl App {
     /// - None
     ///
     /// # Returns
-    /// - Result containing `true` if app should quit, `false` otherwise
-    fn handle_events(&self) -> std::io::Result<bool> {
+    /// - Any errors encountered
+    fn handle_events(&mut self) -> Result<()> {
         match event::read()? {
             Event::Key(key) if key.kind == KeyEventKind::Press => match key.code {
-                KeyCode::Char('q') => Ok(true),
-                _ => Ok(false),
+                KeyCode::Char('q') => {
+                    self.should_quit = true;
+                    Ok(())
+                }
+                _ => Ok(()),
             },
-            _ => Ok(false),
+            _ => Ok(()),
         }
     }
 }
