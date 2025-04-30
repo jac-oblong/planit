@@ -1,3 +1,3 @@
-* planit
+# planit
 
 Project Management App 

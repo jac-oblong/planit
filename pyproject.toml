@@ -1,0 +1,67 @@
+[build-system]
+requires = [ "setuptools>= 77.0.3" ]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "planit"
+version = "0.0.1"
+description = "CLI Planning App"
+authors = [
+    { name = "Jacob Long", email = "jacoblong853@gmail.com" }
+]
+readme = "readme.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+license = "MIT"
+license-files = [ "license" ]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/jac-oblong/planit"
+Issues = "https://github.com/jac-oblong/planit/issues"
+
+[project.scripts]
+planit = "planit.main:main"
+
+[project.optional-dependencies]
+dev = [
+    "black",
+    "pylint",
+    "isort",
+    "pytest",
+]
+
+[tool.black]
+line-length = 88
+target-version = [ "py310" ]
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | planit.egg-info
+)/
+'''
+
+[tool.pylint]
+min-similarity-lines = 6
+ignore-comments = true
+ignore-docstrings = true
+
+[tool.isort]
+profile = "black"
+
+[tools.pytest.ini_options]
+pythonpath = [".",]
