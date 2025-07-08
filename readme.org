@@ -5,5 +5,5 @@ Project Management App
 This only exists because I wanted a free, offline project management software, and I did not like
 any of the other options.
 
-The application is built for my needs and will only have features I want enough to implement
-myself. Using it is not recommended, but feel free.
+The application is built for my needs and I will only implement features I want. Feel free to
+contribute.
