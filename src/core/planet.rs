@@ -25,6 +25,10 @@
 //                                                                        //
 ////////////////////////////////////////////////////////////////////////////
 
+/*!
+ * Module containing the Planet implementation.
+ */
+
 use std::time::SystemTime;
 use uuid::Uuid;
 
@@ -52,12 +56,10 @@ pub enum PlanetStatus {
     Cancel,
 }
 
-/// A struct representing the basic unit of work
-///
 /// Planets are the basic unit of work. Everything else is made of them. Planets
-/// have a unique identifier that is guaranteed to be unique, so no two planets
-/// will ever be the same. They also have a name (or title), description,
-/// creation date, and a history of all changes.
+/// have a unique identifier, so no two planets will ever be the same. They also
+/// have a name (or title), description, creation date, and a history of all
+/// changes.
 ///
 /// These features are all built-in and cannot be disabled. Other features (like
 /// dates, pre/co-requesites, etc.) are enabled, but can safely be ignored.
@@ -92,8 +94,6 @@ pub struct Planet {
 }
 
 impl Planet {
-    /// Creates a new Planet
-    ///
     /// This function creates a new Planet from all the parameters given. This
     /// function should only be used to create a brand new Planet. That is, it
     /// should not be used when initializing a Planet read from a file.
