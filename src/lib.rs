@@ -25,6 +25,9 @@
 //                                                                        //
 ////////////////////////////////////////////////////////////////////////////
 
+/*!
+ * A crate for creating a TUI-based project management application.
+ */
+
 pub mod app;
 pub mod core;
-pub mod ui;

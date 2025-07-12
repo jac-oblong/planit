@@ -25,17 +25,27 @@
 //                                                                        //
 ////////////////////////////////////////////////////////////////////////////
 
+/*!
+ * The interface for interacting with the TUI application.
+ */
+
 use std::io::Result;
 
 use crossterm::event::{self, Event, KeyCode, KeyEventKind};
 use ratatui::{text::Text, DefaultTerminal, Frame};
 
-use crate::core::planet::Planet;
+use crate::core::Planet;
 
-/// The planit application
-///
 /// This struct encapsulates everything in the planit app. It should only be
-/// necessary to create and run
+/// necessary to create the struct and then run it
+///
+/// # Examples
+///
+/// ```
+/// let mut terminal = ratatui::init();
+/// let mut app = App::new();
+/// let result = app.run(&mut terminal);
+/// ```
 pub struct App {
     /// Vector of planets that the App currently knows about
     planets: Vec<Planet>,
@@ -53,8 +63,6 @@ impl App {
         }
     }
 
-    /// Runs the application
-    ///
     /// This function contains the super loop that handles drawing to the screen
     /// and handling all events. It will not exit until the application should
     /// close
@@ -62,8 +70,11 @@ impl App {
     /// # Arguments
     /// - `terminal`: the terminal to use for drawing
     ///
-    /// # Returns
-    /// - Any errors encountered
+    /// # Errors
+    /// Will produce errors when there is an error drawing to the screen or
+    /// handling events. This can happend when:
+    /// * `crossterm::event::read` produces an error
+    /// * `ratatui::DefaultTerminal::draw` produces an error
     pub fn run(&mut self, terminal: &mut DefaultTerminal) -> Result<()> {
         while !self.should_quit {
             let draw_callable = |frame: &mut Frame| self.draw(frame);
@@ -73,30 +84,20 @@ impl App {
         Ok(())
     }
 
-    /// Handles Drawing of TUI
-    ///
     /// This function takes the frame and renders all widgets that should be shown
     /// based on the app's state
     ///
     /// # Arguments
     /// - `frame`: The ratatui::Frame object used to render widgets
-    ///
-    /// # Returns
-    /// - None
     fn draw(&self, frame: &mut Frame) {
         let text = Text::raw("Hello world!");
         frame.render_widget(text, frame.area());
     }
 
-    /// Handles Events
-    ///
     /// This function handles all events from the user, etc.
     ///
-    /// # Arguments
-    /// - None
-    ///
-    /// # Returns
-    /// - Any errors encountered
+    /// # Errors
+    /// Will produce errors when `crossterm::event::read` errors
     fn handle_events(&mut self) -> Result<()> {
         match event::read()? {
             Event::Key(key) if key.kind == KeyEventKind::Press => match key.code {

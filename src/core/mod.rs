@@ -25,8 +25,26 @@
 //                                                                        //
 ////////////////////////////////////////////////////////////////////////////
 
-pub mod planet; // basic unit of work ( task / issue )
-                // pub mod asteroid; // interrupting tasks / bugs
-                // pub mod solar_system; // collection of planets ( milestone )
-                // pub mod galaxy; // collection of solar-systems ( goal )
-                // pub mod universe; // collection of galaxies ( project )
+/*!
+ * The core structures representing the work to be done for the project.
+ */
+
+// basic unit of work ( task / issue )
+pub mod planet;
+pub use planet::Planet;
+
+// interrupting tasks / bugs
+// pub mod asteroid;
+// pub use asteroid::Asteroid;
+
+// collection of planets ( milestone )
+// pub mod solar_system;
+// pub use solar_system::SolarSystem;
+
+// collection of solar-systems ( goal )
+// pub mod galaxy;
+// pub use galaxy::Galaxy;
+
+// collection of galaxies ( project )
+// pub mod universe;
+// pub use universe::Universe;
