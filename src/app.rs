@@ -32,7 +32,13 @@
 use std::io::Result;
 
 use crossterm::event::{self, Event, KeyCode, KeyEventKind};
-use ratatui::{text::Text, DefaultTerminal, Frame};
+use ratatui::{
+    buffer::Buffer,
+    layout::Rect,
+    text::Text,
+    widgets::{Paragraph, Widget},
+    DefaultTerminal, Frame,
+};
 
 use crate::core::Planet;
 
@@ -77,8 +83,7 @@ impl App {
     /// * `ratatui::DefaultTerminal::draw` produces an error
     pub fn run(&mut self, terminal: &mut DefaultTerminal) -> Result<()> {
         while !self.should_quit {
-            let draw_callable = |frame: &mut Frame| self.draw(frame);
-            terminal.draw(&draw_callable)?;
+            terminal.draw(|frame| self.draw(frame))?;
             self.handle_events()?;
         }
         Ok(())
@@ -90,8 +95,7 @@ impl App {
     /// # Arguments
     /// - `frame`: The ratatui::Frame object used to render widgets
     fn draw(&self, frame: &mut Frame) {
-        let text = Text::raw("Hello world!");
-        frame.render_widget(text, frame.area());
+        frame.render_widget(self, frame.area());
     }
 
     /// This function handles all events from the user, etc.
@@ -105,9 +109,28 @@ impl App {
                     self.should_quit = true;
                     Ok(())
                 }
+
+                KeyCode::Char('a') => {
+                    self.planets
+                        .push(Planet::new("A".to_string(), "B".to_string()));
+                    Ok(())
+                }
+
                 _ => Ok(()),
             },
             _ => Ok(()),
         }
+    }
+}
+
+impl Widget for &App {
+    /// Implements rendering of the app
+    ///
+    /// # Arguments
+    /// - `area`: The rectangle within which to render the app
+    /// - `buf`: The buffer to render the app into
+    fn render(self, area: Rect, buf: &mut Buffer) {
+        let text = Text::raw("Hello world!");
+        Paragraph::new(text).centered().render(area, buf);
     }
 }

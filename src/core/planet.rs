@@ -104,7 +104,7 @@ impl Planet {
     ///
     /// # Returns
     /// - A new Planet with all fields initialized appropriately
-    fn new(name: String, description: String) -> Planet {
+    pub fn new(name: String, description: String) -> Planet {
         Planet {
             uuid: Uuid::new_v4(),
             name: name.clone(),
