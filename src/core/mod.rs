@@ -34,8 +34,8 @@ pub mod planet;
 pub use planet::Planet;
 
 // interrupting tasks / bugs
-// pub mod asteroid;
-// pub use asteroid::Asteroid;
+// pub mod comet;
+// pub use comet::Comet;
 
 // collection of planets ( milestone )
 // pub mod solar_system;
