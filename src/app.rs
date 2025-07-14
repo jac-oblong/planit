@@ -35,8 +35,7 @@ use crossterm::event::{self, Event, KeyCode, KeyEventKind};
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
-    text::Text,
-    widgets::{Paragraph, Widget},
+    widgets::{List, ListItem, Widget},
     DefaultTerminal, Frame,
 };
 
@@ -111,7 +110,7 @@ impl App {
                     self.should_quit = true;
                 }
 
-                KeyCode::Char('a') => {
+                KeyCode::Char('i') => {
                     self.planets
                         .push(Planet::new("A".to_string(), "B".to_string()));
                 }
@@ -130,7 +129,12 @@ impl Widget for &App {
     /// - `area`: The rectangle within which to render the app
     /// - `buf`: The buffer to render the app into
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let text = Text::raw("Hello world!");
-        Paragraph::new(text).centered().render(area, buf);
+        let planets: Vec<ListItem> = self
+            .planets
+            .iter()
+            .map(|planet| ListItem::from(planet))
+            .collect();
+        let list = List::new(planets);
+        list.render(area, buf);
     }
 }
