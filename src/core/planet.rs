@@ -29,6 +29,7 @@
  * Module containing the Planet implementation.
  */
 
+use ratatui::{text::Text, widgets::ListItem};
 use std::time::SystemTime;
 use uuid::Uuid;
 
@@ -95,5 +96,12 @@ impl Planet {
             created: SystemTime::now(),
             status: PlanetStatus::Todo,
         }
+    }
+}
+
+impl From<&Planet> for ListItem<'_> {
+    fn from(value: &Planet) -> Self {
+        let text = Text::raw(value.name.clone());
+        ListItem::new(text)
     }
 }
