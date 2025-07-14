@@ -27,9 +27,9 @@
 
 use planit::app::App;
 use ratatui;
-use std::io::Result;
+use std::io;
 
-fn main() -> Result<()> {
+fn main() -> io::Result<()> {
     // setup the terminal
     let terminal = ratatui::init();
 

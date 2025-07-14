@@ -29,13 +29,11 @@
  * The interface for interacting with the TUI application.
  */
 
-use std::io::Result;
+use std::io;
 
 use crossterm::event::{self, Event, KeyCode, KeyEventKind};
 use ratatui::{
-    buffer::Buffer,
-    layout::Rect,
-    widgets::{Block, BorderType, List, ListItem, Padding, Widget},
+    widgets::{Block, BorderType, List, ListItem, Padding},
     DefaultTerminal, Frame,
 };
 
@@ -80,7 +78,7 @@ impl App {
     /// handling events. This can happend when:
     /// * `crossterm::event::read` produces an error
     /// * `ratatui::DefaultTerminal::draw` produces an error
-    pub fn run(&mut self, mut terminal: DefaultTerminal) -> Result<()> {
+    pub fn run(&mut self, mut terminal: DefaultTerminal) -> io::Result<()> {
         while !self.should_quit {
             terminal.draw(|frame| self.draw(frame))?;
             self.handle_events()?;
@@ -94,14 +92,26 @@ impl App {
     /// # Arguments
     /// - `frame`: The ratatui::Frame object used to render widgets
     fn draw(&self, frame: &mut Frame) {
-        frame.render_widget(self, frame.area());
+        let planets: Vec<ListItem> = self
+            .planets
+            .iter()
+            .map(|planet| ListItem::from(planet))
+            .collect();
+
+        let block = Block::bordered()
+            .border_type(BorderType::Rounded)
+            .padding(Padding::proportional(1))
+            .title("Planets");
+
+        let list = List::new(planets).block(block);
+        frame.render_widget(list, frame.area());
     }
 
     /// This function handles all events from the user, etc.
     ///
     /// # Errors
     /// Will produce errors when `crossterm::event::read` errors
-    fn handle_events(&mut self) -> Result<()> {
+    fn handle_events(&mut self) -> io::Result<()> {
         if let Event::Key(key) = event::read()?
             && key.kind == KeyEventKind::Press
         {
@@ -119,27 +129,5 @@ impl App {
             }
         }
         Ok(())
-    }
-}
-
-impl Widget for &App {
-    /// Implements rendering of the app
-    ///
-    /// # Arguments
-    /// - `area`: The rectangle within which to render the app
-    /// - `buf`: The buffer to render the app into
-    fn render(self, area: Rect, buf: &mut Buffer) {
-        let planets: Vec<ListItem> = self
-            .planets
-            .iter()
-            .map(|planet| ListItem::from(planet))
-            .collect();
-
-        let block = Block::bordered()
-            .border_type(BorderType::Rounded)
-            .padding(Padding::proportional(1))
-            .title("Planets");
-
-        List::new(planets).block(block).render(area, buf);
     }
 }
