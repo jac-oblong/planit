@@ -35,7 +35,7 @@ use crossterm::event::{self, Event, KeyCode, KeyEventKind};
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
-    widgets::{List, ListItem, Widget},
+    widgets::{Block, BorderType, List, ListItem, Padding, Widget},
     DefaultTerminal, Frame,
 };
 
@@ -134,7 +134,12 @@ impl Widget for &App {
             .iter()
             .map(|planet| ListItem::from(planet))
             .collect();
-        let list = List::new(planets);
-        list.render(area, buf);
+
+        let block = Block::bordered()
+            .border_type(BorderType::Rounded)
+            .padding(Padding::proportional(1))
+            .title("Planets");
+
+        List::new(planets).block(block).render(area, buf);
     }
 }
