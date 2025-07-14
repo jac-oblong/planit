@@ -29,7 +29,12 @@
  * Module containing the Planet implementation.
  */
 
-use ratatui::{text::Text, widgets::ListItem};
+use core::fmt;
+use ratatui::{
+    style::{Color, Modifier, Style},
+    text::{Line, Span},
+    widgets::ListItem,
+};
 use std::time::SystemTime;
 use uuid::Uuid;
 
@@ -40,6 +45,7 @@ use uuid::Uuid;
 /// needed.
 ///
 /// Only `Done` and `Cancel` are final states.
+#[derive(Debug)]
 pub enum PlanetStatus {
     /// Planet's that are `Todo` are in the "backlog"
     Todo,
@@ -55,6 +61,12 @@ pub enum PlanetStatus {
     Done,
     /// Planet's that are `Cancel` have been canceled for some reason
     Cancel,
+}
+
+impl fmt::Display for PlanetStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        fmt::Debug::fmt(self, f)
+    }
 }
 
 /// Planets are the basic unit of work. Everything else is made of them. Planets
@@ -99,9 +111,23 @@ impl Planet {
     }
 }
 
+/// Used when rendering the Planet as a list along with all the other planets
 impl From<&Planet> for ListItem<'_> {
     fn from(value: &Planet) -> Self {
-        let text = Text::raw(value.name.clone());
-        ListItem::new(text)
+        let line = Line::from(vec![
+            Span::styled(
+                value.status.to_string(),
+                Style::default()
+                    .fg(Color::LightYellow)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(" "),
+            Span::styled(value.name.clone(), Style::default().fg(Color::Magenta)),
+            Span::raw(" "),
+            Span::raw(value.description.clone()),
+            Span::raw(" "),
+            Span::styled(value.uuid.to_string(), Style::default().fg(Color::DarkGray)),
+        ]);
+        ListItem::new(line)
     }
 }
