@@ -81,7 +81,7 @@ impl App {
     /// handling events. This can happend when:
     /// * `crossterm::event::read` produces an error
     /// * `ratatui::DefaultTerminal::draw` produces an error
-    pub fn run(&mut self, terminal: &mut DefaultTerminal) -> Result<()> {
+    pub fn run(&mut self, mut terminal: DefaultTerminal) -> Result<()> {
         while !self.should_quit {
             terminal.draw(|frame| self.draw(frame))?;
             self.handle_events()?;
@@ -103,23 +103,23 @@ impl App {
     /// # Errors
     /// Will produce errors when `crossterm::event::read` errors
     fn handle_events(&mut self) -> Result<()> {
-        match event::read()? {
-            Event::Key(key) if key.kind == KeyEventKind::Press => match key.code {
-                KeyCode::Char('q') => {
+        if let Event::Key(key) = event::read()?
+            && key.kind == KeyEventKind::Press
+        {
+            match key.code {
+                KeyCode::Char('q') | KeyCode::Esc => {
                     self.should_quit = true;
-                    Ok(())
                 }
 
                 KeyCode::Char('a') => {
                     self.planets
                         .push(Planet::new("A".to_string(), "B".to_string()));
-                    Ok(())
                 }
 
-                _ => Ok(()),
-            },
-            _ => Ok(()),
+                _ => {}
+            }
         }
+        Ok(())
     }
 }
 

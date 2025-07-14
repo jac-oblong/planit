@@ -27,23 +27,17 @@
 
 use planit::app::App;
 use ratatui;
-use std::error::Error;
+use std::io::Result;
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() -> Result<()> {
     // setup the terminal
-    let mut terminal = ratatui::init();
+    let terminal = ratatui::init();
 
     // create application and run it
     let mut app = App::new();
-    let res = app.run(&mut terminal);
+    let result = app.run(terminal);
 
     // restore the terminal
     ratatui::restore();
-
-    match res {
-        Ok(()) => (),
-        Err(err) => println!("{err:?}"),
-    }
-
-    Ok(())
+    result
 }
