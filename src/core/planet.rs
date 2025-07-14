@@ -74,23 +74,6 @@ pub struct Planet {
     created: SystemTime,
     /// The current state of the planet
     status: PlanetStatus,
-
-    /// The date that work for the planet is expected to start
-    start: Option<SystemTime>,
-    /// The date that work for the planet is expected to be complete
-    end: Option<SystemTime>,
-    /// How often the planet should repeat
-    repeat: Option<String>, // TODO: This should be a more specific value
-
-    // List of uuids for other planets that need to be done before this one can
-    // be started
-    prereqs: Vec<Uuid>,
-    // List of uuids for other planets that will be `Started` at the same time as
-    // this
-    coreqs: Vec<Uuid>,
-
-    /// Any user defined tags the planet has
-    tags: Vec<String>,
 }
 
 impl Planet {
@@ -111,12 +94,6 @@ impl Planet {
             description: description.clone(),
             created: SystemTime::now(),
             status: PlanetStatus::Todo,
-            start: None,
-            end: None,
-            repeat: None,
-            prereqs: Vec::new(),
-            coreqs: Vec::new(),
-            tags: Vec::new(),
         }
     }
 }
