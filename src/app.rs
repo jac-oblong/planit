@@ -29,7 +29,7 @@
  * The interface for interacting with the TUI application.
  */
 
-use std::io;
+use std::{error, fmt, io};
 
 use crossterm::event::{self, Event, KeyCode, KeyEventKind};
 use ratatui::{
@@ -39,12 +39,48 @@ use ratatui::{
     DefaultTerminal, Frame,
 };
 
-use crate::core::Planet;
+use crate::{core::Planet, database};
+
+pub type Result<T> = std::result::Result<T, AppError>;
+
+/// Possible errors when running the application
+#[derive(Debug)]
+pub enum AppError {
+    DatabaseError(database::DatabaseError),
+    IoError(io::Error),
+}
+
+impl error::Error for AppError {}
+
+impl fmt::Display for AppError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            AppError::DatabaseError(db_error) => {
+                write!(f, "Database error: {db_error}")
+            }
+            AppError::IoError(io_error) => {
+                write!(f, "IO error: {io_error}")
+            }
+        }
+    }
+}
+
+impl From<database::DatabaseError> for AppError {
+    fn from(value: database::DatabaseError) -> Self {
+        Self::DatabaseError(value)
+    }
+}
+
+impl From<io::Error> for AppError {
+    fn from(value: io::Error) -> Self {
+        Self::IoError(value)
+    }
+}
 
 /// Determines the current mode of the application.
-/// * `Normal` - This is the primary mode. It includes a list view of the
+/// - `Normal` - This is the primary mode. It includes a list view of the
 ///   `Planets`, and nothing else.
-/// * `Insert` - This is a secondary mode. It allows for adding a new `Planet`
+/// - `Insert` - This is a secondary mode. It allows for adding a new `Planet`
 #[derive(Debug, PartialEq, Eq)]
 enum AppMode {
     Normal,
@@ -52,8 +88,8 @@ enum AppMode {
 }
 
 /// Determines what is currently being inserted
-/// * `Name` - The planet name is currently being typed.
-/// * `Description` - The planet description is currently being typed.
+/// - `Name` - The planet name is currently being typed.
+/// - `Description` - The planet description is currently being typed.
 #[derive(Debug, PartialEq, Eq)]
 enum AppInsert {
     Name,
@@ -89,15 +125,15 @@ pub struct App {
 
 impl App {
     /// Creates a new App
-    pub fn new() -> Self {
-        App {
-            planets: Vec::new(),
+    pub fn new() -> Result<Self> {
+        Ok(App {
+            planets: database::load(None)?,
             should_quit: false,
             mode: AppMode::Normal,
             insert: AppInsert::Name,
             planet_name: String::new(),
             planet_desc: String::new(),
-        }
+        })
     }
 
     /// This function contains the super loop that handles drawing to the screen
@@ -110,13 +146,14 @@ impl App {
     /// # Errors
     /// Will produce errors when there is an error drawing to the screen or
     /// handling events. This can happend when:
-    /// * `crossterm::event::read` produces an error
-    /// * `ratatui::DefaultTerminal::draw` produces an error
-    pub fn run(&mut self, mut terminal: DefaultTerminal) -> io::Result<()> {
+    /// - `crossterm::event::read` produces an error
+    /// - `ratatui::DefaultTerminal::draw` produces an error
+    pub fn run(&mut self, mut terminal: DefaultTerminal) -> Result<()> {
         while !self.should_quit {
             terminal.draw(|frame| self.draw(frame))?;
             self.handle_events()?;
         }
+        database::save(self.planets.clone(), None)?;
         Ok(())
     }
 
@@ -190,7 +227,7 @@ impl App {
     ///
     /// # Errors
     /// Will produce errors when `crossterm::event::read` errors
-    fn handle_events(&mut self) -> io::Result<()> {
+    fn handle_events(&mut self) -> Result<()> {
         if let Event::Key(key) = event::read()?
             && key.kind == KeyEventKind::Press
         {
