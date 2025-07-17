@@ -103,8 +103,8 @@ impl Planet {
     pub fn new(name: String, description: String) -> Planet {
         Planet {
             uuid: Uuid::new_v4(),
-            name: name.clone(),
-            description: description.clone(),
+            name,
+            description,
             created: SystemTime::now(),
             status: PlanetStatus::Todo,
         }

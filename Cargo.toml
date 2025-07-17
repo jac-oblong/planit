@@ -2,6 +2,11 @@
 name = "planit"
 version = "0.1.0"
 edition = "2024"
+description = "Project Management App"
+authors = ["Jacob Long <jacoblong853@gmail.com>"]
+repository = "https://github.com/jac-oblong/planit"
+readme = "readme.org"
+license-file = "license"
 
 [dependencies]
 crossterm = "0.28.1"
