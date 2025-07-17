@@ -25,19 +25,36 @@
 //                                                                        //
 ////////////////////////////////////////////////////////////////////////////
 
-use planit::app::App;
-use ratatui;
-use std::io;
+use std::panic;
 
-fn main() -> io::Result<()> {
+use ratatui;
+
+use planit::app::{self, App};
+
+fn main() -> app::Result<()> {
     // setup the terminal
     let terminal = ratatui::init();
+    // Add a panic hook so that the terminal is restored
+    init_panic_hook();
 
     // create application and run it
-    let mut app = App::new();
-    let result = app.run(terminal);
+    match App::new() {
+        Ok(mut app) => {
+            let result = app.run(terminal);
+            ratatui::restore();
+            result
+        }
+        Err(e) => {
+            ratatui::restore();
+            Err(e)
+        }
+    }
+}
 
-    // restore the terminal
-    ratatui::restore();
-    result
+fn init_panic_hook() {
+    let original_hook = panic::take_hook();
+    panic::set_hook(Box::new(move |panic_info| {
+        ratatui::restore();
+        original_hook(panic_info)
+    }));
 }

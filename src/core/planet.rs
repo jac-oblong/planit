@@ -29,14 +29,14 @@
  * Module containing the Planet implementation.
  */
 
-use core::fmt;
+use std::{fmt, time::SystemTime};
+
 use ratatui::{
     style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::ListItem,
 };
-use std::time::SystemTime;
-use uuid::Uuid;
+use serde::{Deserialize, Serialize};
 
 /// An enum representing the status of a Planet
 ///
@@ -45,7 +45,7 @@ use uuid::Uuid;
 /// needed.
 ///
 /// Only `Done` and `Cancel` are final states.
-#[derive(Debug)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub enum PlanetStatus {
     /// Planet's that are `Todo` are in the "backlog"
     Todo,
@@ -76,9 +76,8 @@ impl fmt::Display for PlanetStatus {
 ///
 /// These features are all built-in and cannot be disabled. Other features (like
 /// dates, pre/co-requesites, etc.) are enabled, but can safely be ignored.
+#[derive(Deserialize, Serialize, Clone)]
 pub struct Planet {
-    /// The unique & constant identifier for each planet
-    uuid: Uuid,
     /// The `name` (or title) for the planet
     name: String,
     /// A more detailed description of the planet
@@ -99,10 +98,9 @@ impl Planet {
     /// - `description`: The description field of the new Planet
     ///
     /// # Returns
-    /// - A new Planet with all fields initialized appropriately
+    /// A new Planet with all fields initialized appropriately
     pub fn new(name: String, description: String) -> Planet {
         Planet {
-            uuid: Uuid::new_v4(),
             name,
             description,
             created: SystemTime::now(),
@@ -125,8 +123,6 @@ impl From<&Planet> for ListItem<'_> {
             Span::styled(value.name.clone(), Style::default().fg(Color::Magenta)),
             Span::raw(" "),
             Span::raw(value.description.clone()),
-            Span::raw(" "),
-            Span::styled(value.uuid.to_string(), Style::default().fg(Color::DarkGray)),
         ]);
         ListItem::new(line)
     }
