@@ -101,10 +101,11 @@ enum AppInsert {
 ///
 /// # Examples
 ///
-/// ```
+/// ```no_run
 /// let mut terminal = ratatui::init();
-/// let mut app = App::new();
-/// let result = app.run(&mut terminal);
+/// let mut app = planit::App::new()?;
+/// app.run(terminal)?;
+/// # Ok::<(), planit::AppError>(())
 /// ```
 pub struct App {
     /// Vector of planets that the App currently knows about

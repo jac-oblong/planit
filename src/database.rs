@@ -29,12 +29,12 @@
  *
  * # Examples
  *
- * ```
+ * ```no_run
+ * use planit::database;
  * let planets = database::load(None)?;
- *
  * // Do some operations
- *
  * database::save(planets, None)?;
+ * # Ok::<(), database::DatabaseError>(())
  * ```
  */
 
