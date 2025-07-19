@@ -45,7 +45,7 @@ use serde::{Deserialize, Serialize};
 /// needed.
 ///
 /// Only `Done` and `Cancel` are final states.
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, Copy, PartialEq, Eq)]
 pub enum PlanetStatus {
     /// Planet's that are `Todo` are in the "backlog"
     Todo,
@@ -79,13 +79,13 @@ impl fmt::Display for PlanetStatus {
 #[derive(Deserialize, Serialize, Clone)]
 pub struct Planet {
     /// The `name` (or title) for the planet
-    name: String,
+    pub title: String,
     /// A more detailed description of the planet
-    description: String,
+    pub description: String,
     /// The date the planet was created
-    created: SystemTime,
+    pub created: SystemTime,
     /// The current state of the planet
-    status: PlanetStatus,
+    pub status: PlanetStatus,
 }
 
 impl Planet {
@@ -99,9 +99,9 @@ impl Planet {
     ///
     /// # Returns
     /// A new Planet with all fields initialized appropriately
-    pub fn new(name: String, description: String) -> Planet {
+    pub fn new(title: String, description: String) -> Planet {
         Planet {
-            name,
+            title,
             description,
             created: SystemTime::now(),
             status: PlanetStatus::Todo,
@@ -120,7 +120,7 @@ impl From<&Planet> for ListItem<'_> {
                     .add_modifier(Modifier::BOLD),
             ),
             Span::raw(" "),
-            Span::styled(value.name.clone(), Style::default().fg(Color::Magenta)),
+            Span::styled(value.title.clone(), Style::default().fg(Color::Magenta)),
             Span::raw(" "),
             Span::raw(value.description.clone()),
         ]);

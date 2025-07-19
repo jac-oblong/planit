@@ -27,8 +27,6 @@
 
 use std::panic;
 
-use ratatui;
-
 use planit::app::{self, App};
 
 fn main() -> app::Result<()> {
