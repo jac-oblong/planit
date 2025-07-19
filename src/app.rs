@@ -164,11 +164,7 @@ impl App {
     /// # Arguments
     /// - `frame`: The ratatui::Frame object used to render widgets
     fn draw(&self, frame: &mut Frame) {
-        let planets: Vec<ListItem> = self
-            .planets
-            .iter()
-            .map(|planet| ListItem::from(planet))
-            .collect();
+        let planets: Vec<ListItem> = self.planets.iter().map(ListItem::from).collect();
 
         let block = Block::bordered()
             .border_type(BorderType::Rounded)

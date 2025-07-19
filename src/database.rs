@@ -38,6 +38,12 @@
  * ```
  */
 
+////////////////////////////////////////////////////////////////////////////////
+//                                                                            //
+//                                  IMPORTS                                   //
+//                                                                            //
+////////////////////////////////////////////////////////////////////////////////
+
 use std::{
     env, error, fmt, fs, io,
     option::Option,
@@ -49,7 +55,19 @@ use serde::{Deserialize, Serialize};
 
 use crate::core::Planet;
 
+////////////////////////////////////////////////////////////////////////////////
+//                                                                            //
+//                                RESULT TYPE                                 //
+//                                                                            //
+////////////////////////////////////////////////////////////////////////////////
+
 type Result<T> = std::result::Result<T, DatabaseError>;
+
+////////////////////////////////////////////////////////////////////////////////
+//                                                                            //
+//                                 ERROR ENUM                                 //
+//                                                                            //
+////////////////////////////////////////////////////////////////////////////////
 
 /// Possible errors when loading / saving a database.
 #[derive(Debug)]
@@ -92,6 +110,12 @@ impl From<serde_json::Error> for DatabaseError {
     }
 }
 
+////////////////////////////////////////////////////////////////////////////////
+//                                                                            //
+//                              DATABASE STRUCT                               //
+//                                                                            //
+////////////////////////////////////////////////////////////////////////////////
+
 /// The representation of the database
 /// NOTE: If this struct is changed in any way, the `SCHEMA_VERSION` needs to be
 /// incremented (see below)
@@ -126,6 +150,12 @@ fn ensure_database_version<'de, D: serde::Deserializer<'de>>(
         ))),
     }
 }
+
+////////////////////////////////////////////////////////////////////////////////
+//                                                                            //
+//                              PUBLIC FUNCTIONS                              //
+//                                                                            //
+////////////////////////////////////////////////////////////////////////////////
 
 /// Loads a list of `Planets` from a database. The database can optionally be
 /// specified. If the `name` is left as `None` then the database will be found
@@ -182,6 +212,12 @@ pub fn save(planets: Vec<Planet>, name: Option<String>) -> Result<()> {
     }
 }
 
+////////////////////////////////////////////////////////////////////////////////
+//                                                                            //
+//                              HELPER FUNCTIONS                              //
+//                                                                            //
+////////////////////////////////////////////////////////////////////////////////
+
 /// Finds the location for the database file. If `name` is `None`, the default
 /// database will be found. The default is a file named ".planit.json" in one
 /// of the parent directories.
@@ -213,5 +249,55 @@ fn database_location(name: Option<String>) -> Result<PathBuf> {
                 }
             }
         }
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//                                                                            //
+//                                   TESTS                                    //
+//                                                                            //
+////////////////////////////////////////////////////////////////////////////////
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn database_can_be_loaded_and_saved_without_changes() -> Result<()> {
+        let json_string = b"{
+  \"version\": 1,
+  \"planets\": [
+    {
+      \"title\": \"Test\",
+      \"description\": \"This is a test\",
+      \"created\": {
+        \"secs_since_epoch\": 0,
+        \"nanos_since_epoch\": 0
+      },
+      \"status\": \"Todo\"
+    },
+    {
+      \"title\": \"Another Test\",
+      \"description\": \"This is also a test\",
+      \"created\": {
+        \"secs_since_epoch\": 10,
+        \"nanos_since_epoch\": 100
+      },
+      \"status\": \"Done\"
+    }
+  ]
+}";
+        let mut writer = Vec::new();
+        let reader = io::Cursor::new(json_string);
+
+        let db: Database = serde_json::from_reader(reader)?;
+
+        assert_eq!(db.version, Database::SCHEMA_VERSION);
+        assert_eq!(db.planets.len(), 2);
+
+        serde_json::to_writer_pretty(&mut writer, &db)?;
+
+        assert_eq!(writer, json_string);
+        Ok(())
     }
 }
