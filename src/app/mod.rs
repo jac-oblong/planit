@@ -24,9 +24,3 @@
 // SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                 //
 //                                                                        //
 ////////////////////////////////////////////////////////////////////////////
-
-use planit::util;
-
-fn main() {
-    util::init_panic_hook();
-}

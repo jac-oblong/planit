@@ -1,5 +1,4 @@
 ////////////////////////////////////////////////////////////////////////////
-//                                                                        //
 // The MIT License (MIT)                                                  //
 //                                                                        //
 // Copyright (c) 2025 Jacob Long                                          //
@@ -22,11 +21,52 @@
 // CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,   //
 // TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE      //
 // SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                 //
-//                                                                        //
 ////////////////////////////////////////////////////////////////////////////
 
-use planit::util;
+/*!
+ * A collection of helper utility functions
+ */
 
-fn main() {
-    util::init_panic_hook();
+use std::panic;
+
+use ratatui::layout::{Constraint, Direction, Layout, Rect};
+
+/// Helper function to create a centered rectangle using a certain percentage
+/// of the rectange `r`.
+///
+/// # Arguments
+/// - `r`: Rectangle within which the new rectangle should be centered.
+/// - `percent_x`: Percentage in range (0, 100]. The center `percent_x` percent
+///   of the horizontal part of `r` will be used for the new rectangle.
+/// - `percent_y`: Percentage in range (0, 100]. The center `percent_y` percent
+///   of the vertical part of `r` will be used for the new rectangle.
+pub fn centered_rect(r: Rect, percent_x: u16, percent_y: u16) -> Rect {
+    // Cut the given rectangle into three vertical pieces
+    let popup_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Percentage((100 - percent_y) / 2),
+            Constraint::Percentage(percent_y),
+            Constraint::Percentage((100 - percent_y) / 2),
+        ])
+        .split(r);
+
+    // Then cut the middle vertical piece into three width-wise pieces
+    Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Percentage((100 - percent_x) / 2),
+            Constraint::Percentage(percent_x),
+            Constraint::Percentage((100 - percent_x) / 2),
+        ])
+        .split(popup_layout[1])[1] // Return the middle chunk
+}
+
+/// Initializes a panic hook that will restore ratatui. This also uses the
+/// `better_panic` hook for nicer panic messages
+pub fn init_panic_hook() {
+    panic::set_hook(Box::new(move |panic_info| {
+        ratatui::restore();
+        better_panic::Settings::auto().create_panic_handler()(panic_info)
+    }));
 }
