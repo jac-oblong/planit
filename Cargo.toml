@@ -9,6 +9,7 @@ readme = "readme.org"
 license-file = "license"
 
 [dependencies]
+better-panic = "0.3.0"
 crossterm = "0.28.1"
 ratatui = "0.29.0"
 serde = { version = "1.0.219", features = [ "derive" ] }
