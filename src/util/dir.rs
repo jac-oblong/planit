@@ -24,9 +24,37 @@
 ////////////////////////////////////////////////////////////////////////////
 
 /*!
- * A collection of helper utility functions
+ * Helper utilities related to directory operations
  */
 
-pub mod dir;
-pub mod panic;
-pub mod tui;
+////////////////////////////////////////////////////////////////////////////////
+//                                                                            //
+//                                  IMPORTS                                   //
+//                                                                            //
+////////////////////////////////////////////////////////////////////////////////
+
+use std::path::PathBuf;
+
+use directories::ProjectDirs;
+
+////////////////////////////////////////////////////////////////////////////////
+//                                                                            //
+//                                 FUNCTIONS                                  //
+//                                                                            //
+////////////////////////////////////////////////////////////////////////////////
+
+/// Helper function to obtain the data directory for the project
+///
+/// # Returns
+/// The path representing the data directory, if it exists.
+pub fn data() -> Option<PathBuf> {
+    if let Ok(dir) = std::env::var("PLANIT_DATA") {
+        return Some(PathBuf::from(dir));
+    }
+
+    if let Some(dirs) = ProjectDirs::from("org", "planit", "planit") {
+        return Some(dirs.data_dir().to_path_buf());
+    }
+
+    None
+}
