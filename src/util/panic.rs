@@ -1,5 +1,4 @@
 ////////////////////////////////////////////////////////////////////////////
-//                                                                        //
 // The MIT License (MIT)                                                  //
 //                                                                        //
 // Copyright (c) 2025 Jacob Long                                          //
@@ -22,11 +21,31 @@
 // CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,   //
 // TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE      //
 // SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                 //
-//                                                                        //
 ////////////////////////////////////////////////////////////////////////////
 
-use planit::util;
+/*!
+ * Helper utilities related to panic
+ */
 
-fn main() {
-    util::panic::init_hook();
+////////////////////////////////////////////////////////////////////////////////
+//                                                                            //
+//                                  IMPORTS                                   //
+//                                                                            //
+////////////////////////////////////////////////////////////////////////////////
+
+use std::panic;
+
+////////////////////////////////////////////////////////////////////////////////
+//                                                                            //
+//                                 FUNCTIONS                                  //
+//                                                                            //
+////////////////////////////////////////////////////////////////////////////////
+
+/// Initializes a panic hook that will restore ratatui. This also uses the
+/// `better_panic` hook for nicer panic messages
+pub fn init_hook() {
+    panic::set_hook(Box::new(move |panic_info| {
+        ratatui::restore();
+        better_panic::Settings::auto().create_panic_handler()(panic_info)
+    }));
 }
