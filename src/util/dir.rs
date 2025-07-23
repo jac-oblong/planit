@@ -58,3 +58,19 @@ pub fn data() -> Option<PathBuf> {
 
     None
 }
+
+/// Helper function to obtain the cache directory for the project
+///
+/// # Returns
+/// The path representing the cache directory, if it exists.
+pub fn cache() -> Option<PathBuf> {
+    if let Ok(dir) = std::env::var("PLANIT_STATE") {
+        return Some(PathBuf::from(dir));
+    }
+
+    if let Some(dirs) = ProjectDirs::from("org", "planit", "planit") {
+        return Some(dirs.cache_dir().to_path_buf());
+    }
+
+    None
+}
