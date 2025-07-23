@@ -24,10 +24,48 @@
 ////////////////////////////////////////////////////////////////////////////
 
 /*!
- * A collection of helper utility functions
+ * Helper utilities related to logging
  */
 
-pub mod dir;
-pub mod log;
-pub mod panic;
-pub mod tui;
+////////////////////////////////////////////////////////////////////////////////
+//                                                                            //
+//                                  IMPORTS                                   //
+//                                                                            //
+////////////////////////////////////////////////////////////////////////////////
+
+use std::fs;
+
+use log::LevelFilter;
+use tui_logger::{
+    init_logger, set_default_level, set_env_filter_from_string, set_log_file, TuiLoggerFile,
+};
+
+pub use log::{debug, error, info, trace, warn};
+
+use super::dir;
+
+////////////////////////////////////////////////////////////////////////////////
+//                                                                            //
+//                                 FUNCTIONS                                  //
+//                                                                            //
+////////////////////////////////////////////////////////////////////////////////
+
+pub fn init() {
+    init_logger(LevelFilter::Trace).expect("Could not initialize logging");
+    set_default_level(LevelFilter::Trace);
+
+    if let Ok(s) = std::env::var("PLANIT_LOG_LEVEL") {
+        set_env_filter_from_string(&s);
+    } else if let Ok(s) = std::env::var("RUST_LOG") {
+        set_env_filter_from_string(&s);
+    }
+
+    let mut path = dir::cache().expect("Could not find directory to store logs");
+    fs::create_dir_all(&path).expect("Could not create directory to store logs");
+    path.push("planit.log");
+    if !path.exists() {
+        let _ = fs::File::create(&path);
+    }
+    let file = TuiLoggerFile::new(path.to_str().expect("Invalid path"));
+    set_log_file(file);
+}

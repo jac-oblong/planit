@@ -29,4 +29,5 @@ use planit::util;
 
 fn main() {
     util::panic::init_hook();
+    util::log::init();
 }
