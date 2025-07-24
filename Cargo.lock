@@ -565,6 +565,7 @@ name = "planit"
 version = "0.1.0"
 dependencies = [
  "better-panic",
+ "chrono",
  "crossterm",
  "directories",
  "log",

@@ -10,6 +10,7 @@ license-file = "license"
 
 [dependencies]
 better-panic = "0.3.0"
+chrono = { version = "0.4.41", features = [ "serde" ] }
 crossterm = "0.28.1"
 directories = "6.0.0"
 log = "0.4.27"

@@ -1,5 +1,4 @@
 ////////////////////////////////////////////////////////////////////////////
-//                                                                        //
 // The MIT License (MIT)                                                  //
 //                                                                        //
 // Copyright (c) 2025 Jacob Long                                          //
@@ -22,11 +21,10 @@
 // CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,   //
 // TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE      //
 // SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                 //
-//                                                                        //
 ////////////////////////////////////////////////////////////////////////////
 
 /*!
- * Module containing the Planet implementation.
+ * Module containing the Star implementation.
  */
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -35,11 +33,9 @@
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
-use std::collections::{BTreeMap, HashMap};
-
 use chrono::Local;
 use log::info;
-use serde::{Deserialize, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 
 use super::{Status, StatusHistory, ID};
 
@@ -49,12 +45,11 @@ use super::{Status, StatusHistory, ID};
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
-/// Planets are the basic unit of work. Everything else is made of them.
-///
-/// In addition to the core features that all celestial bodies have, Planets
-/// have custom tags and custom fields. These can all be safely ignored.
+/// Stars are collections of other celestial bodies. They can contain Planets,
+/// Comets, and even other Stars. They are meant to be used to separate elements
+/// into organized groups.
 #[derive(Debug, Default, Deserialize, Serialize)]
-pub struct Planet {
+pub struct Star {
     pub(super) id: ID,
     pub(super) parent: Option<ID>,
     pub(super) title: String,
@@ -62,26 +57,12 @@ pub struct Planet {
     pub(super) status: Status,
     pub(super) history: Vec<StatusHistory>,
 
-    /// User defined tags. These can be used for searching, filtering, labeling,
-    /// etc. They will not affect the Planet otherwise.
-    pub(super) tags: Vec<String>,
-    /// User defined fields. These can be used for searching, filtering,
-    /// labeling, etc. They consist of a key and an associated value. They will
-    /// not affect the Planet otherwise.
-    #[serde(serialize_with = "ordered_map")]
-    pub(super) fields: HashMap<String, String>,
+    /// Contains the ids of all the celestial bodies that are directly owned by
+    /// this star
+    pub(super) children: Vec<ID>,
 }
 
-/// Helper function to ensure that HashMaps are serialized in order
-fn ordered_map<S>(value: &HashMap<String, String>, serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    let ordered: BTreeMap<_, _> = value.iter().collect();
-    ordered.serialize(serializer)
-}
-
-impl Planet {
+impl Star {
     /// Sets the `parent` field and returns `self`
     pub fn parent(mut self, parent: ID) -> Self {
         self.parent = Some(parent);
@@ -110,7 +91,7 @@ impl Planet {
             time: Local::now(),
         });
         info!(
-            "Planet ({}) changed status from {} to {}",
+            "Star ({}) changed status from {} to {}",
             self.id, self.status, status
         );
         self.status = status;
@@ -131,22 +112,22 @@ mod test {
 
     #[test]
     fn changing_status_adds_to_history() {
-        let mut planet = Planet::default();
+        let mut star = Star::default();
         let t1 = Local::now();
-        planet.status(Status::Start, "1".to_string());
+        star.status(Status::Start, "1".to_string());
         let t2 = Local::now();
-        planet.status(Status::Done, "2".to_string());
+        star.status(Status::Done, "2".to_string());
 
-        assert_eq!(planet.history.len(), 2);
+        assert_eq!(star.history.len(), 2);
 
-        assert_eq!(planet.history[0].comment, "1");
-        assert_eq!(planet.history[0].old, Status::Todo);
-        assert_eq!(planet.history[0].new, Status::Start);
-        assert!(planet.history[0].time - t1 < TimeDelta::milliseconds(1));
+        assert_eq!(star.history[0].comment, "1");
+        assert_eq!(star.history[0].old, Status::Todo);
+        assert_eq!(star.history[0].new, Status::Start);
+        assert!(star.history[0].time - t1 < TimeDelta::milliseconds(1));
 
-        assert_eq!(planet.history[1].comment, "2");
-        assert_eq!(planet.history[1].old, Status::Start);
-        assert_eq!(planet.history[1].new, Status::Done);
-        assert!(planet.history[1].time - t2 < TimeDelta::milliseconds(1));
+        assert_eq!(star.history[1].comment, "2");
+        assert_eq!(star.history[1].old, Status::Start);
+        assert_eq!(star.history[1].new, Status::Done);
+        assert!(star.history[1].time - t2 < TimeDelta::milliseconds(1));
     }
 }
