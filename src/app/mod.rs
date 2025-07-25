@@ -49,6 +49,8 @@ use std::{env, io};
 pub use cli::Cli;
 use cli::Commands;
 
+use crate::core::galaxy::DatabaseError;
+
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
 //                                   TYPES                                    //
@@ -67,11 +69,15 @@ type Result<T> = std::result::Result<T, AppError>;
 #[derive(Debug)]
 pub enum AppError {
     IoError(io::Error),
+    DatabaseError(DatabaseError),
 }
 
 impl std::fmt::Display for AppError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
+        match self {
+            Self::IoError(e) => write!(f, "Error during IO operation: {e}"),
+            Self::DatabaseError(e) => write!(f, "Error during database operation: {e}"),
+        }
     }
 }
 
@@ -80,6 +86,12 @@ impl std::error::Error for AppError {}
 impl From<io::Error> for AppError {
     fn from(value: std::io::Error) -> Self {
         Self::IoError(value)
+    }
+}
+
+impl From<DatabaseError> for AppError {
+    fn from(value: DatabaseError) -> Self {
+        Self::DatabaseError(value)
     }
 }
 
