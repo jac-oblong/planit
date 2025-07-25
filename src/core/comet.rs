@@ -52,8 +52,8 @@ use super::{Status, StatusHistory, ID};
 pub struct Comet {
     pub(super) id: ID,
     pub(super) parent: Option<ID>,
-    pub(super) title: String,
-    pub(super) description: String,
+    pub title: String,
+    pub description: String,
     pub(super) status: Status,
     pub(super) history: Vec<StatusHistory>,
 }
