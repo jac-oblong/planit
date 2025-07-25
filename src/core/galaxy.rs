@@ -247,21 +247,21 @@ fn ensure_database_version<'de, D: serde::Deserializer<'de>>(
 /// within the project.
 #[derive(Debug, Default)]
 pub struct Galaxy {
-    pub(super) title: String,
-    pub(super) description: String,
+    pub title: String,
+    pub description: String,
 
     /// The ID of the next created celestial body
     pub(super) next_id: ID,
 
     /// Vector of all comets that exist within the Galaxy (even those that are
     /// "owned" by a star). No elements should ever be removed from this vector.
-    pub(super) comets: Vec<Comet>,
+    pub comets: Vec<Comet>,
     /// Vector of all planets that exist within the Galaxy (even those that are
     /// "owned" by a star). No elements should ever be removed from this vector.
-    pub(super) planets: Vec<Planet>,
+    pub planets: Vec<Planet>,
     /// Vector of all stars that exist within the Galaxy (even those that are
     /// "owned" by a star). No elements should ever be removed from this vector.
-    pub(super) stars: Vec<Star>,
+    pub stars: Vec<Star>,
 
     /// A map from the celestial body's id to the index within the corresponding
     /// vector (`comets`, `planets`, or `stars`)
