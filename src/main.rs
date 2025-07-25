@@ -25,9 +25,20 @@
 //                                                                        //
 ////////////////////////////////////////////////////////////////////////////
 
-use planit::util;
+use log::error;
+use planit::{
+    app::{self, cli::Parser, Cli},
+    util,
+};
 
 fn main() {
     util::panic::init_hook();
     util::log::init();
+
+    let args = Cli::parse();
+    let result = app::run(args);
+
+    if let Err(e) = result {
+        error!("Error in running application: {e}");
+    }
 }

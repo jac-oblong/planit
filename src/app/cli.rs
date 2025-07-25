@@ -1,5 +1,4 @@
 ////////////////////////////////////////////////////////////////////////////
-//                                                                        //
 // The MIT License (MIT)                                                  //
 //                                                                        //
 // Copyright (c) 2025 Jacob Long                                          //
@@ -22,21 +21,11 @@
 // CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,   //
 // TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE      //
 // SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                 //
-//                                                                        //
 ////////////////////////////////////////////////////////////////////////////
 
 /*!
- * Contains the implementation of the application. This includes both the
- * command line version and TUI version.
+ * Contains the implementation for the command line application.
  */
-
-////////////////////////////////////////////////////////////////////////////////
-//                                                                            //
-//                                  MODULES                                   //
-//                                                                            //
-////////////////////////////////////////////////////////////////////////////////
-
-pub mod cli;
 
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
@@ -44,43 +33,69 @@ pub mod cli;
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
-use std::{env, io};
+use std::path::PathBuf;
 
-pub use cli::Cli;
-use cli::Commands;
+use clap::{ArgAction, Args, Subcommand};
+pub use clap::{Parser, ValueEnum};
 
-////////////////////////////////////////////////////////////////////////////////
-//                                                                            //
-//                                   TYPES                                    //
-//                                                                            //
-////////////////////////////////////////////////////////////////////////////////
-
-type Result<T> = std::result::Result<T, AppError>;
+use super::Result;
+use crate::core::CelestialBodyKind;
 
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
-//                                   ENUMS                                    //
+//                                  STRUCTS                                   //
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
-/// All errors that might happen when running the application
-#[derive(Debug)]
-pub enum AppError {
-    IoError(io::Error),
+#[derive(Parser)]
+#[command(version, about, long_about = None)]
+pub struct Cli {
+    /// Sets the current working directory for the given command
+    #[arg(short, long)]
+    pub dir: Option<PathBuf>,
+
+    /// Adds more logging messages
+    #[arg(short, long, action = ArgAction::Count)]
+    pub verbose: u8,
+
+    #[command(subcommand)]
+    pub command: Option<Commands>,
 }
 
-impl std::fmt::Display for AppError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
-    }
+#[derive(Subcommand)]
+pub enum Commands {
+    /// Initialize a new Galaxy in the current directory
+    Init(InitArgs),
+    /// List the celestial bodies in the Galaxy
+    List(ListArgs),
+    /// Create a new celestial body
+    New(NewArgs),
 }
 
-impl std::error::Error for AppError {}
+#[derive(Args)]
+pub struct InitArgs {
+    /// Title for the new project
+    pub title: String,
+    /// Description for the new project
+    pub description: Option<String>,
+}
 
-impl From<io::Error> for AppError {
-    fn from(value: std::io::Error) -> Self {
-        Self::IoError(value)
-    }
+#[derive(Args)]
+pub struct ListArgs {
+    /// List recursively, or just list top-level
+    #[arg(short, long)]
+    pub recursive: bool,
+}
+
+#[derive(Args)]
+pub struct NewArgs {
+    /// Type of celestial body to create
+    #[arg(value_enum)]
+    pub kind: CelestialBodyKind,
+    /// Title for the new celestial body
+    pub title: String,
+    /// Description for the new celestial body
+    pub description: Option<String>,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -89,27 +104,17 @@ impl From<io::Error> for AppError {
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
-/// Runs the application. Does not return until all operations are completed.
-///
-/// # Arguments
-/// `args`: The parsed command line arguments
-///
-/// # Returns
-/// Any errors that are encountered. `Ok(())` otherwise
-pub fn run(args: Cli) -> Result<()> {
-    if let Some(dir) = args.dir {
-        env::set_current_dir(dir)?;
-    }
+/// Initializes a new Galaxy in the current directory
+pub fn init(args: InitArgs) -> Result<()> {
+    todo!()
+}
 
-    match args.verbose {
-        0 => {}
-        _ => todo!(),
-    }
+/// Lists all celestial bodies in the Galaxy
+pub fn list(args: ListArgs) -> Result<()> {
+    todo!()
+}
 
-    match args.command {
-        Some(Commands::Init(args)) => cli::init(args),
-        Some(Commands::List(args)) => cli::list(args),
-        Some(Commands::New(args)) => cli::new(args),
-        None => todo!(),
-    }
+/// Creates a new celestial body
+pub fn new(args: NewArgs) -> Result<()> {
+    todo!()
 }
