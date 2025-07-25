@@ -41,7 +41,7 @@ use std::{
 use log::info;
 use serde::{Deserialize, Serialize};
 
-use super::{Comet, Planet, Star, ID};
+use super::{CelestialBodyKind, Comet, Planet, Star, ID};
 
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
@@ -56,18 +56,6 @@ type Result<T> = std::result::Result<T, DatabaseError>;
 //                                   ENUMS                                    //
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
-
-/// An enum representing the type of the celestial body and the index in the
-/// corresponding vector for said celestial body
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
-pub enum CelestialBodyIndex {
-    /// An index into the vector of comets
-    Comet(usize),
-    /// An index into the vector of planets
-    Planet(usize),
-    /// An index into the vector of stars
-    Star(usize),
-}
 
 /// Possible errors when loading / saving a database
 #[derive(Debug)]
@@ -115,6 +103,22 @@ impl From<serde_json::Error> for DatabaseError {
 //                                  STRUCTS                                   //
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
+
+/// An struct representing the type of the celestial body and the index in the
+/// corresponding vector for said celestial body
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct CelestialBodyIndex {
+    /// The kind of celestial body it is
+    kind: CelestialBodyKind,
+    /// The index into the associated vector
+    index: usize,
+}
+
+impl CelestialBodyIndex {
+    pub fn new(kind: CelestialBodyKind, index: usize) -> Self {
+        Self { kind, index }
+    }
+}
 
 /// The representation of the database. This is an internal struct that should
 /// only be used by the `Galaxy` when loading / saving.
@@ -287,13 +291,19 @@ impl Galaxy {
 
         let mut id_to_index: HashMap<ID, CelestialBodyIndex> = HashMap::new();
         for (i, comet) in value.comets.iter().enumerate() {
-            id_to_index.insert(comet.id, CelestialBodyIndex::Comet(i));
+            id_to_index.insert(
+                comet.id,
+                CelestialBodyIndex::new(CelestialBodyKind::Comet, i),
+            );
         }
         for (i, planet) in value.planets.iter().enumerate() {
-            id_to_index.insert(planet.id, CelestialBodyIndex::Planet(i));
+            id_to_index.insert(
+                planet.id,
+                CelestialBodyIndex::new(CelestialBodyKind::Planet, i),
+            );
         }
         for (i, star) in value.stars.iter().enumerate() {
-            id_to_index.insert(star.id, CelestialBodyIndex::Star(i));
+            id_to_index.insert(star.id, CelestialBodyIndex::new(CelestialBodyKind::Star, i));
         }
 
         Ok(Galaxy {
@@ -376,7 +386,7 @@ impl Galaxy {
         self.comets.push(comet);
         // associate the id with the index
         self.id_to_index
-            .insert(id, CelestialBodyIndex::Comet(index));
+            .insert(id, CelestialBodyIndex::new(CelestialBodyKind::Comet, index));
 
         &mut self.comets[index]
     }
@@ -397,8 +407,10 @@ impl Galaxy {
         // put the planet into the vector of planets
         self.planets.push(planet);
         // associate the id with the index
-        self.id_to_index
-            .insert(id, CelestialBodyIndex::Planet(index));
+        self.id_to_index.insert(
+            id,
+            CelestialBodyIndex::new(CelestialBodyKind::Planet, index),
+        );
 
         &mut self.planets[index]
     }
@@ -419,7 +431,8 @@ impl Galaxy {
         // put the star into the vector of stars
         self.stars.push(star);
         // associate the id with the index
-        self.id_to_index.insert(id, CelestialBodyIndex::Star(index));
+        self.id_to_index
+            .insert(id, CelestialBodyIndex::new(CelestialBodyKind::Star, index));
 
         &mut self.stars[index]
     }
@@ -527,7 +540,10 @@ mod test {
         assert_eq!(galaxy.id_to_index.len(), 1);
 
         let id = galaxy.comets.first().unwrap().id;
-        assert_eq!(galaxy.index(id), Some(CelestialBodyIndex::Comet(0)));
+        assert_eq!(
+            galaxy.index(id),
+            Some(CelestialBodyIndex::new(CelestialBodyKind::Comet, 0))
+        );
     }
 
     #[test]
@@ -539,7 +555,10 @@ mod test {
         assert_eq!(galaxy.id_to_index.len(), 1);
 
         let id = galaxy.planets.first().unwrap().id;
-        assert_eq!(galaxy.index(id), Some(CelestialBodyIndex::Planet(0)));
+        assert_eq!(
+            galaxy.index(id),
+            Some(CelestialBodyIndex::new(CelestialBodyKind::Planet, 0))
+        );
     }
 
     #[test]
@@ -551,7 +570,10 @@ mod test {
         assert_eq!(galaxy.id_to_index.len(), 1);
 
         let id = galaxy.stars.first().unwrap().id;
-        assert_eq!(galaxy.index(id), Some(CelestialBodyIndex::Star(0)));
+        assert_eq!(
+            galaxy.index(id),
+            Some(CelestialBodyIndex::new(CelestialBodyKind::Star, 0))
+        );
     }
 
     #[test]
@@ -618,10 +640,22 @@ mod test {
         assert_eq!(galaxy.stars[0].children[1], 2);
 
         assert_eq!(galaxy.id_to_index.len(), 4);
-        assert_eq!(galaxy.index(0).unwrap(), CelestialBodyIndex::Comet(0));
-        assert_eq!(galaxy.index(1).unwrap(), CelestialBodyIndex::Planet(0));
-        assert_eq!(galaxy.index(2).unwrap(), CelestialBodyIndex::Planet(1));
-        assert_eq!(galaxy.index(3).unwrap(), CelestialBodyIndex::Star(0));
+        assert_eq!(
+            galaxy.index(0).unwrap(),
+            CelestialBodyIndex::new(CelestialBodyKind::Comet, 0)
+        );
+        assert_eq!(
+            galaxy.index(1).unwrap(),
+            CelestialBodyIndex::new(CelestialBodyKind::Planet, 0)
+        );
+        assert_eq!(
+            galaxy.index(2).unwrap(),
+            CelestialBodyIndex::new(CelestialBodyKind::Planet, 1)
+        );
+        assert_eq!(
+            galaxy.index(3).unwrap(),
+            CelestialBodyIndex::new(CelestialBodyKind::Star, 0)
+        );
     }
 
     #[test]
@@ -680,10 +714,10 @@ mod test {
                 children: vec![1, 2],
             }],
             id_to_index: HashMap::from([
-                (0, CelestialBodyIndex::Comet(0)),
-                (1, CelestialBodyIndex::Planet(0)),
-                (2, CelestialBodyIndex::Planet(1)),
-                (3, CelestialBodyIndex::Star(0)),
+                (0, CelestialBodyIndex::new(CelestialBodyKind::Comet, 0)),
+                (1, CelestialBodyIndex::new(CelestialBodyKind::Planet, 0)),
+                (2, CelestialBodyIndex::new(CelestialBodyKind::Planet, 1)),
+                (3, CelestialBodyIndex::new(CelestialBodyKind::Star, 0)),
             ]),
         };
 
