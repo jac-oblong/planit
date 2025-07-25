@@ -49,7 +49,7 @@ use super::{Status, StatusHistory, ID};
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
-/// Planets are the basic unit of work. Everything else is made of them.
+/// Planets are the basic unit of work.
 ///
 /// In addition to the core features that all celestial bodies have, Planets
 /// have custom tags and custom fields. These can all be safely ignored.

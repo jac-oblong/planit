@@ -58,6 +58,7 @@ use std::fmt::Display;
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 
+use crate::app::cli;
 pub use crate::core::comet::Comet;
 pub use crate::core::galaxy::{CelestialBodyIndex, Galaxy};
 pub use crate::core::planet::Planet;
@@ -76,6 +77,17 @@ type ID = u64;
 //                                   ENUMS                                    //
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
+
+/// Represents the different types of celestial bodies
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, cli::ValueEnum)]
+pub enum CelestialBodyKind {
+    /// An interrupting task / bug
+    Comet,
+    /// A basic unit of work
+    Planet,
+    /// A collection of other celestial bodies
+    Star,
+}
 
 /// Represents the status of the `Planet` / `Comet` / `Star`
 ///
