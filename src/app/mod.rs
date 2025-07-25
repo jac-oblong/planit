@@ -104,7 +104,7 @@ impl From<DatabaseError> for AppError {
 /// Runs the application. Does not return until all operations are completed.
 ///
 /// # Arguments
-/// `args`: The parsed command line arguments
+/// - `args`: The parsed command line arguments
 ///
 /// # Returns
 /// Any errors that are encountered. `Ok(())` otherwise

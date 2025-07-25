@@ -124,5 +124,30 @@ pub fn list(args: ListArgs) -> Result<()> {
 
 /// Creates a new celestial body
 pub fn new(args: NewArgs) -> Result<()> {
-    todo!()
+    let mut galaxy = Galaxy::load()?;
+
+    match args.kind {
+        CelestialBodyKind::Comet => {
+            let comet = galaxy.comet().title(args.title);
+            if let Some(description) = args.description {
+                comet.description(description);
+            }
+        }
+        CelestialBodyKind::Planet => {
+            let planet = galaxy.planet().title(args.title);
+            if let Some(description) = args.description {
+                planet.description(description);
+            }
+        }
+        CelestialBodyKind::Star => {
+            let star = galaxy.star().title(args.title);
+            if let Some(description) = args.description {
+                star.description(description);
+            }
+        }
+    }
+
+    galaxy.save()?;
+
+    Ok(())
 }
