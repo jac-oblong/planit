@@ -64,7 +64,7 @@ pub fn data() -> Option<PathBuf> {
 /// # Returns
 /// The path representing the cache directory, if it exists.
 pub fn cache() -> Option<PathBuf> {
-    if let Ok(dir) = std::env::var("PLANIT_STATE") {
+    if let Ok(dir) = std::env::var("PLANIT_CACHE") {
         return Some(PathBuf::from(dir));
     }
 
