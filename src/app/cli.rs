@@ -33,13 +33,13 @@
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
-use std::path::PathBuf;
+use std::{env, path::PathBuf};
 
 use clap::{ArgAction, Args, Subcommand};
 pub use clap::{Parser, ValueEnum};
 
 use super::Result;
-use crate::core::CelestialBodyKind;
+use crate::core::{CelestialBodyKind, Galaxy};
 
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
@@ -106,7 +106,15 @@ pub struct NewArgs {
 
 /// Initializes a new Galaxy in the current directory
 pub fn init(args: InitArgs) -> Result<()> {
-    todo!()
+    let mut galaxy = Galaxy::default().title(args.title);
+    if let Some(description) = args.description {
+        galaxy = galaxy.description(description);
+    }
+
+    let dir = env::current_dir()?;
+    galaxy.init(dir)?;
+
+    Ok(())
 }
 
 /// Lists all celestial bodies in the Galaxy

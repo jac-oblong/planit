@@ -62,6 +62,8 @@ type Result<T> = std::result::Result<T, DatabaseError>;
 pub enum DatabaseError {
     /// The specified database could not be found
     DatabaseNotFound(String),
+    /// The specified database already exists
+    DatabaseAlreadyExists(String),
     /// An error occurred while performing an filesystem operation
     FileSystemError(io::Error),
     /// An error occurrd while parsing the database
@@ -75,6 +77,9 @@ impl fmt::Display for DatabaseError {
         match self {
             DatabaseError::DatabaseNotFound(name) => {
                 write!(f, "Database not found: {name}")
+            }
+            DatabaseError::DatabaseAlreadyExists(name) => {
+                write!(f, "Database already exists: {name}")
             }
             DatabaseError::FileSystemError(io_error) => {
                 write!(f, "Database file system error: {io_error}")
@@ -317,14 +322,34 @@ impl Galaxy {
         })
     }
 
-    /// Saves a `Galaxy` to a database. The database will be found by searching
-    /// parent directories for `Database::DEFAULT_FILENAME`.
+    /// Initializes a new database for `Galaxy` to be saved in. The new database
+    /// will be placed in the directory `dir`.
     ///
     /// **WARNING**: This action is destructive. The old database will be
     /// overwritten.
     ///
-    /// # Returns
-    /// A new `Galaxy` object.
+    /// # Errors
+    /// Errors will occur in the following situations:
+    /// - There is an error while doing a filesystem operation
+    /// - There is an error while parsing the database
+    pub fn init(self, mut dir: PathBuf) -> Result<()> {
+        dir.push(Database::DEFAULT_FILENAME);
+        if dir.exists() {
+            return Err(DatabaseError::DatabaseAlreadyExists(
+                dir.to_string_lossy().to_string(),
+            ));
+        }
+
+        let file = fs::File::create(dir)?;
+        let writer = io::BufWriter::new(file);
+        self.save_to_writer(writer)
+    }
+
+    /// Saves `Galaxy` to a database. The database will be found by searching
+    /// parent directories for `Database::DEFAULT_FILENAME`.
+    ///
+    /// **WARNING**: This action is destructive. The old database will be
+    /// overwritten.
     ///
     /// # Errors
     /// Errors will occur in the following situations:
@@ -334,6 +359,22 @@ impl Galaxy {
     /// - There is an error while parsing the database
     pub fn save(self) -> Result<()> {
         let path = Database::location()?;
+        let file = fs::File::create(path)?;
+        let writer = io::BufWriter::new(file);
+        self.save_to_writer(writer)
+    }
+
+    /// Saves `Galaxy` to the database in `path`. Will create a new database if
+    /// one does not exist.
+    ///
+    /// **WARNING**: This action is destructive. The old database will be
+    /// overwritten.
+    ///
+    /// # Errors
+    /// Errors will occur in the following situations:
+    /// - There is an error while doing a filesystem operation
+    /// - There is an error while parsing the database
+    pub fn save_to(self, path: PathBuf) -> Result<()> {
         let file = fs::File::create(path)?;
         let writer = io::BufWriter::new(file);
         self.save_to_writer(writer)
