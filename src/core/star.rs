@@ -64,19 +64,19 @@ pub struct Star {
 
 impl Star {
     /// Sets the `parent` field and returns `self`
-    pub fn parent(mut self, parent: ID) -> Self {
+    pub fn parent(&mut self, parent: ID) -> &mut Self {
         self.parent = Some(parent);
         self
     }
 
     /// Sets the `title` field and returns `self`
-    pub fn title(mut self, title: String) -> Self {
+    pub fn title(&mut self, title: String) -> &mut Self {
         self.title = title;
         self
     }
 
     /// Sets the `description` field and returns `self`
-    pub fn description(mut self, description: String) -> Self {
+    pub fn description(&mut self, description: String) -> &mut Self {
         self.description = description;
         self
     }
