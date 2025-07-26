@@ -74,6 +74,30 @@ type ID = u64;
 
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
+//                                   TRAITS                                   //
+//                                                                            //
+////////////////////////////////////////////////////////////////////////////////
+
+/// Trait that all celestial bodies must implement
+pub trait CelestialBody<'a>:
+    std::fmt::Debug + Deserialize<'a> + Serialize + PartialEq + Eq
+{
+    /// Constructor that uses `id` for the new celestial body
+    fn new(id: ID) -> Self;
+
+    /// Setter for celestial body's parent
+    fn parent(&mut self, parent: ID) -> &mut Self;
+    /// Setter for celestial body's title
+    fn title(&mut self, title: String) -> &mut Self;
+    /// Setter for celestial body's description
+    fn description(&mut self, description: String) -> &mut Self;
+    /// Setter for celestial body's status. `commet` should be an explanation of
+    /// why the status has changed
+    fn status(&mut self, status: Status, comment: String) -> &mut Self;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//                                                                            //
 //                                   ENUMS                                    //
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
@@ -141,7 +165,7 @@ impl Display for Status {
 ////////////////////////////////////////////////////////////////////////////////
 
 /// A single change to the celestial body's status that occurred in history
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
 pub struct StatusHistory {
     old: Status,
     new: Status,
