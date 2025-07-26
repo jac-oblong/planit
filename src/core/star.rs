@@ -37,7 +37,7 @@ use chrono::Local;
 use log::info;
 use serde::{Deserialize, Serialize};
 
-use super::{Status, StatusHistory, ID};
+use super::{CelestialBody, Status, StatusHistory, ID};
 
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
@@ -48,12 +48,12 @@ use super::{Status, StatusHistory, ID};
 /// Stars are collections of other celestial bodies. They can contain Planets,
 /// Comets, and even other Stars. They are meant to be used to separate elements
 /// into organized groups.
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
 pub struct Star {
     pub(super) id: ID,
     pub(super) parent: Option<ID>,
-    pub title: String,
-    pub description: String,
+    pub(super) title: String,
+    pub(super) description: String,
     pub(super) status: Status,
     pub(super) history: Vec<StatusHistory>,
 
@@ -62,28 +62,30 @@ pub struct Star {
     pub(super) children: Vec<ID>,
 }
 
-impl Star {
-    /// Sets the `parent` field and returns `self`
-    pub fn parent(&mut self, parent: ID) -> &mut Self {
+impl CelestialBody<'_> for Star {
+    fn new(id: ID) -> Self {
+        Self {
+            id,
+            ..Self::default()
+        }
+    }
+
+    fn parent(&mut self, parent: ID) -> &mut Self {
         self.parent = Some(parent);
         self
     }
 
-    /// Sets the `title` field and returns `self`
-    pub fn title(&mut self, title: String) -> &mut Self {
+    fn title(&mut self, title: String) -> &mut Self {
         self.title = title;
         self
     }
 
-    /// Sets the `description` field and returns `self`
-    pub fn description(&mut self, description: String) -> &mut Self {
+    fn description(&mut self, description: String) -> &mut Self {
         self.description = description;
         self
     }
 
-    /// Sets the `status` field. `comment` should be an explanation of why the
-    /// status has changed
-    pub fn status(&mut self, status: Status, comment: String) {
+    fn status(&mut self, status: Status, comment: String) -> &mut Self {
         self.history.push(StatusHistory {
             old: self.status,
             new: status,
@@ -95,6 +97,7 @@ impl Star {
             self.id, self.status, status
         );
         self.status = status;
+        self
     }
 }
 

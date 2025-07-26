@@ -2,7 +2,9 @@
 // The MIT License (MIT)                                                  //
 //                                                                        //
 // Copyright (c) 2025 Jacob Long                                          //
-//                                                                        // Permission is hereby granted, free of charge, to any person obtaining  // a copy of this software and associated documentation files (the        //
+//                                                                        //
+// Permission is hereby granted, free of charge, to any person obtaining  //
+// a copy of this software and associated documentation files (the        //
 // "Software"), to deal in the Software without restriction, including    //
 // without limitation the rights to use, copy, modify, merge, publish,    //
 // distribute, sublicense, and/or sell copies of the Software, and to     //
@@ -41,7 +43,7 @@ use std::{
 use log::info;
 use serde::{Deserialize, Serialize};
 
-use super::{CelestialBodyKind, Comet, Planet, Star, ID};
+use super::{CelestialBody, CelestialBodyKind, Comet, Planet, Star, ID};
 
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
@@ -247,25 +249,25 @@ fn ensure_database_version<'de, D: serde::Deserializer<'de>>(
 /// within the project.
 #[derive(Debug, Default)]
 pub struct Galaxy {
-    pub title: String,
-    pub description: String,
+    title: String,
+    description: String,
 
     /// The ID of the next created celestial body
-    pub(super) next_id: ID,
+    next_id: ID,
 
     /// Vector of all comets that exist within the Galaxy (even those that are
     /// "owned" by a star). No elements should ever be removed from this vector.
-    pub comets: Vec<Comet>,
+    comets: Vec<Comet>,
     /// Vector of all planets that exist within the Galaxy (even those that are
     /// "owned" by a star). No elements should ever be removed from this vector.
-    pub planets: Vec<Planet>,
+    planets: Vec<Planet>,
     /// Vector of all stars that exist within the Galaxy (even those that are
     /// "owned" by a star). No elements should ever be removed from this vector.
-    pub stars: Vec<Star>,
+    stars: Vec<Star>,
 
     /// A map from the celestial body's id to the index within the corresponding
     /// vector (`comets`, `planets`, or `stars`)
-    pub(super) id_to_index: HashMap<ID, CelestialBodyIndex>,
+    id_to_index: HashMap<ID, CelestialBodyIndex>,
 }
 
 impl Galaxy {
@@ -419,10 +421,7 @@ impl Galaxy {
         let index = self.comets.len();
         info!("Creating new Comet with id {id}");
         // Create new comet and set the id
-        let comet = Comet {
-            id,
-            ..Default::default()
-        };
+        let comet = Comet::new(id);
         // put the comet into the vector of comets
         self.comets.push(comet);
         // associate the id with the index
@@ -441,10 +440,7 @@ impl Galaxy {
         let index = self.planets.len();
         info!("Creating new Planet with id {id}");
         // Create new planet and set the id
-        let planet = Planet {
-            id,
-            ..Default::default()
-        };
+        let planet = Planet::new(id);
         // put the planet into the vector of planets
         self.planets.push(planet);
         // associate the id with the index
@@ -465,10 +461,7 @@ impl Galaxy {
         let index = self.stars.len();
         info!("Creating new Star with id {id}");
         // Create new star and set the id
-        let star = Star {
-            id,
-            ..Default::default()
-        };
+        let star = Star::new(id);
         // put the star into the vector of stars
         self.stars.push(star);
         // associate the id with the index
@@ -627,58 +620,69 @@ mod test {
         assert_eq!(galaxy.next_id, 4);
 
         assert_eq!(galaxy.comets.len(), 1);
-        assert_eq!(galaxy.comets[0].id, 0);
-        assert_eq!(galaxy.comets[0].parent, None);
-        assert_eq!(galaxy.comets[0].title, "Test Comet");
-        assert_eq!(galaxy.comets[0].description, "This is a test comet");
-        assert_eq!(galaxy.comets[0].status, Status::Todo);
-        assert_eq!(galaxy.comets[0].history.len(), 0);
+        assert_eq!(
+            galaxy.comets[0],
+            Comet {
+                id: 0,
+                parent: None,
+                title: "Test Comet".into(),
+                description: "This is a test comet".into(),
+                status: Status::Todo,
+                history: Vec::new()
+            }
+        );
 
         assert_eq!(galaxy.planets.len(), 2);
-        assert_eq!(galaxy.planets[0].id, 1);
-        assert_eq!(galaxy.planets[0].parent, Some(3));
-        assert_eq!(galaxy.planets[0].title, "Test Planet 1");
-        assert_eq!(galaxy.planets[0].description, "This is a test planet");
-        assert_eq!(galaxy.planets[0].status, Status::Hold);
-        assert_eq!(galaxy.planets[0].history.len(), 1);
-        assert_eq!(galaxy.planets[0].history[0].old, Status::Todo);
-        assert_eq!(galaxy.planets[0].history[0].new, Status::Hold);
-        assert_eq!(galaxy.planets[0].history[0].comment, "No");
         assert_eq!(
-            galaxy.planets[0].history[0].time,
-            DateTime::parse_from_rfc3339("2020-12-25T19:33:51-05:00").unwrap()
-        );
-        assert_eq!(galaxy.planets[0].tags.len(), 0);
-        assert_eq!(galaxy.planets[0].fields.len(), 0);
-        assert_eq!(galaxy.planets[1].id, 2);
-        assert_eq!(galaxy.planets[1].parent, Some(3));
-        assert_eq!(galaxy.planets[1].title, "Test Planet 2");
-        assert_eq!(galaxy.planets[1].description, "This is a test planet");
-        assert_eq!(galaxy.planets[1].status, Status::Done);
-        assert_eq!(galaxy.planets[1].history.len(), 0);
-        assert_eq!(galaxy.planets[1].tags.len(), 2);
-        assert_eq!(galaxy.planets[1].tags[0], "tag1");
-        assert_eq!(galaxy.planets[1].tags[1], "tag2");
-        assert_eq!(galaxy.planets[1].fields.len(), 2);
-        assert_eq!(
-            galaxy.planets[1].fields.get("key1"),
-            Some(&"value1".to_string())
+            galaxy.planets[0],
+            Planet {
+                id: 1,
+                parent: Some(3),
+                title: "Test Planet 1".into(),
+                description: "This is a test planet".into(),
+                status: Status::Hold,
+                history: vec![StatusHistory {
+                    old: Status::Todo,
+                    new: Status::Hold,
+                    comment: "No".into(),
+                    time: DateTime::parse_from_rfc3339("2020-12-25T19:33:51-05:00")
+                        .unwrap()
+                        .into()
+                }],
+                tags: vec![],
+                fields: HashMap::new()
+            }
         );
         assert_eq!(
-            galaxy.planets[1].fields.get("key2"),
-            Some(&"value2".to_string())
+            galaxy.planets[1],
+            Planet {
+                id: 2,
+                parent: Some(3),
+                title: "Test Planet 2".into(),
+                description: "This is a test planet".into(),
+                status: Status::Done,
+                history: vec![],
+                tags: vec!["tag1".into(), "tag2".into()],
+                fields: HashMap::from([
+                    ("key1".into(), "value1".into()),
+                    ("key2".into(), "value2".into())
+                ])
+            }
         );
 
         assert_eq!(galaxy.stars.len(), 1);
-        assert_eq!(galaxy.stars[0].id, 3);
-        assert_eq!(galaxy.stars[0].parent, None);
-        assert_eq!(galaxy.stars[0].title, "Test Star");
-        assert_eq!(galaxy.stars[0].description, "This is a test star");
-        assert_eq!(galaxy.stars[0].status, Status::Todo);
-        assert_eq!(galaxy.stars[0].history.len(), 0);
-        assert_eq!(galaxy.stars[0].children.len(), 2);
-        assert_eq!(galaxy.stars[0].children[0], 1);
-        assert_eq!(galaxy.stars[0].children[1], 2);
+        assert_eq!(
+            galaxy.stars[0],
+            Star {
+                id: 3,
+                parent: None,
+                title: "Test Star".into(),
+                description: "This is a test star".into(),
+                status: Status::Todo,
+                history: vec![],
+                children: vec![1, 2]
+            }
+        );
 
         assert_eq!(galaxy.id_to_index.len(), 4);
         assert_eq!(
