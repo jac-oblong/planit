@@ -49,7 +49,7 @@ use std::{env, io};
 pub use cli::Cli;
 use cli::Commands;
 
-use crate::core::galaxy::DatabaseError;
+use crate::core::DatabaseError;
 
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
