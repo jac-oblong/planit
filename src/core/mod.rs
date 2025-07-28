@@ -42,10 +42,10 @@
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
-pub mod comet;
-pub mod galaxy;
-pub mod planet;
-pub mod star;
+mod comet;
+mod galaxy;
+mod planet;
+mod star;
 
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
@@ -61,7 +61,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::app::cli;
 pub use crate::core::comet::Comet;
-pub use crate::core::galaxy::{CelestialBodyIndex, Galaxy};
+pub use crate::core::galaxy::{CelestialBodyIndex, DatabaseError, Galaxy};
 pub use crate::core::planet::Planet;
 pub use crate::core::star::Star;
 use crate::util;
