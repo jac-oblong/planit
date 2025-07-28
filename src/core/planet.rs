@@ -37,7 +37,7 @@
 
 use std::collections::{BTreeMap, HashMap};
 
-use chrono::Local;
+use chrono::Utc;
 use colored::Colorize;
 use log::info;
 use serde::{Deserialize, Serialize, Serializer};
@@ -112,7 +112,7 @@ impl CelestialBody<'_> for Planet {
             old: self.status,
             new: status,
             comment,
-            time: Local::now(),
+            time: Utc::now(),
         });
         info!(
             "Planet ({}) changed status from {} to {}",
@@ -164,9 +164,9 @@ mod test {
     #[test]
     fn changing_status_adds_to_history() {
         let mut planet = Planet::default();
-        let t1 = Local::now();
+        let t1 = Utc::now();
         planet.status(Status::Start, "1".to_string());
-        let t2 = Local::now();
+        let t2 = Utc::now();
         planet.status(Status::Done, "2".to_string());
 
         assert_eq!(planet.history.len(), 2);

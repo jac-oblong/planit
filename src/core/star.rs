@@ -33,7 +33,7 @@
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
-use chrono::Local;
+use chrono::Utc;
 use colored::Colorize;
 use log::info;
 use serde::{Deserialize, Serialize};
@@ -93,7 +93,7 @@ impl CelestialBody<'_> for Star {
             old: self.status,
             new: status,
             comment,
-            time: Local::now(),
+            time: Utc::now(),
         });
         info!(
             "Star ({}) changed status from {} to {}",
@@ -169,9 +169,9 @@ mod test {
     #[test]
     fn changing_status_adds_to_history() {
         let mut star = Star::default();
-        let t1 = Local::now();
+        let t1 = Utc::now();
         star.status(Status::Start, "1".to_string());
-        let t2 = Local::now();
+        let t2 = Utc::now();
         star.status(Status::Done, "2".to_string());
 
         assert_eq!(star.history.len(), 2);
