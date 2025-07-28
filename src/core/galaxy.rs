@@ -40,8 +40,11 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use colored::Colorize;
 use log::info;
 use serde::{Deserialize, Serialize};
+
+use crate::util::{self, tree::PrintTreeNode};
 
 use super::{CelestialBody, CelestialBodyKind, Comet, Planet, Star, ID};
 
@@ -116,9 +119,9 @@ impl From<serde_json::Error> for DatabaseError {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct CelestialBodyIndex {
     /// The kind of celestial body it is
-    kind: CelestialBodyKind,
+    pub kind: CelestialBodyKind,
     /// The index into the associated vector
-    index: usize,
+    pub index: usize,
 }
 
 impl CelestialBodyIndex {
@@ -257,13 +260,13 @@ pub struct Galaxy {
 
     /// Vector of all comets that exist within the Galaxy (even those that are
     /// "owned" by a star). No elements should ever be removed from this vector.
-    comets: Vec<Comet>,
+    pub(super) comets: Vec<Comet>,
     /// Vector of all planets that exist within the Galaxy (even those that are
     /// "owned" by a star). No elements should ever be removed from this vector.
-    planets: Vec<Planet>,
+    pub(super) planets: Vec<Planet>,
     /// Vector of all stars that exist within the Galaxy (even those that are
     /// "owned" by a star). No elements should ever be removed from this vector.
-    stars: Vec<Star>,
+    pub(super) stars: Vec<Star>,
 
     /// A map from the celestial body's id to the index within the corresponding
     /// vector (`comets`, `planets`, or `stars`)
@@ -481,6 +484,53 @@ impl Galaxy {
         let id = self.next_id;
         self.next_id += 1;
         id
+    }
+
+    /// Pretty-prints the galaxy to the writer provided
+    ///
+    /// # Arguments
+    /// - `w`: Writer to write everything into
+    /// - `width`: Horizontal character limit. Lines will be truncated to this
+    ///   length and "..." will be used to denote the truncation
+    /// - `include_description`: Whether or not the print the description fields
+    ///   when pretty printing
+    /// - `recursive`: Recurse through the children or only print the first
+    ///   layer
+    pub fn pretty_print_to_writer<W: io::Write>(
+        &self,
+        w: &mut W,
+        width: usize,
+        include_description: bool,
+        recursive: bool,
+    ) -> io::Result<()> {
+        let mut children: Vec<Box<&dyn PrintTreeNode<Self>>> = self
+            .comets
+            .iter()
+            .map(|comet| Box::new(comet as &dyn PrintTreeNode<Galaxy>))
+            .collect();
+        children.extend(
+            self.planets
+                .iter()
+                .map(|planet| Box::new(planet as &dyn PrintTreeNode<Galaxy>)),
+        );
+        children.extend(
+            self.stars
+                .iter()
+                .map(|star| Box::new(star as &dyn PrintTreeNode<Galaxy>)),
+        );
+
+        util::tree::print_to_writer(
+            self,
+            w,
+            width,
+            include_description,
+            recursive,
+            self.title.purple(),
+            self.description.bright_black(),
+            children,
+        )?;
+
+        Ok(())
     }
 }
 

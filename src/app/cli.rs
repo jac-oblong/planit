@@ -39,7 +39,7 @@ use clap::{ArgAction, Args, Subcommand};
 pub use clap::{Parser, ValueEnum};
 
 use super::Result;
-use crate::core::{CelestialBodyKind, Galaxy};
+use crate::core::{CelestialBody, CelestialBodyKind, Galaxy};
 
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
@@ -85,6 +85,9 @@ pub struct ListArgs {
     /// List recursively, or just list top-level
     #[arg(short, long)]
     pub recursive: bool,
+    /// Include description in listing
+    #[arg(short, long)]
+    pub description: bool,
 }
 
 #[derive(Args)]
@@ -119,7 +122,17 @@ pub fn init(args: InitArgs) -> Result<()> {
 
 /// Lists all celestial bodies in the Galaxy
 pub fn list(args: ListArgs) -> Result<()> {
-    todo!()
+    let (width, _) = crossterm::terminal::size()?;
+    let galaxy = Galaxy::load()?;
+
+    galaxy.pretty_print_to_writer(
+        &mut std::io::stdout(),
+        width as usize,
+        args.description,
+        args.recursive,
+    )?;
+
+    Ok(())
 }
 
 /// Creates a new celestial body

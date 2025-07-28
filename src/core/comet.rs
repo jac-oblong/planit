@@ -34,10 +34,13 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 use chrono::Local;
+use colored::Colorize;
 use log::info;
 use serde::{Deserialize, Serialize};
 
-use super::{CelestialBody, Status, StatusHistory, ID};
+use crate::util;
+
+use super::{CelestialBody, Galaxy, Status, StatusHistory, ID};
 
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
@@ -94,6 +97,32 @@ impl CelestialBody<'_> for Comet {
         );
         self.status = status;
         self
+    }
+}
+
+impl util::tree::PrintTreeNode<Galaxy> for Comet {
+    fn icon(&self) -> colored::ColoredString {
+        "".red()
+    }
+
+    fn label(&self) -> colored::ColoredString {
+        "[COMET] ".red() // Added spaces line it up with planet
+    }
+
+    fn status(&self) -> colored::ColoredString {
+        self.status.into()
+    }
+
+    fn title(&self) -> colored::ColoredString {
+        colored::ColoredString::from(self.title.clone())
+    }
+
+    fn description(&self) -> colored::ColoredString {
+        self.description.bright_black()
+    }
+
+    fn children<'a>(&self, _: &'a Galaxy) -> Vec<Box<&'a dyn util::tree::PrintTreeNode<Galaxy>>> {
+        vec![]
     }
 }
 

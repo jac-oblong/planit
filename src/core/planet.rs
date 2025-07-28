@@ -38,10 +38,13 @@
 use std::collections::{BTreeMap, HashMap};
 
 use chrono::Local;
+use colored::Colorize;
 use log::info;
 use serde::{Deserialize, Serialize, Serializer};
 
-use super::{CelestialBody, Status, StatusHistory, ID};
+use crate::util;
+
+use super::{CelestialBody, Galaxy, Status, StatusHistory, ID};
 
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
@@ -117,6 +120,32 @@ impl CelestialBody<'_> for Planet {
         );
         self.status = status;
         self
+    }
+}
+
+impl util::tree::PrintTreeNode<Galaxy> for Planet {
+    fn icon(&self) -> colored::ColoredString {
+        "".blue()
+    }
+
+    fn label(&self) -> colored::ColoredString {
+        "[PLANET]".blue()
+    }
+
+    fn status(&self) -> colored::ColoredString {
+        self.status.into()
+    }
+
+    fn title(&self) -> colored::ColoredString {
+        colored::ColoredString::from(self.title.clone())
+    }
+
+    fn description(&self) -> colored::ColoredString {
+        self.description.bright_black()
+    }
+
+    fn children<'a>(&self, _: &'a Galaxy) -> Vec<Box<&'a dyn util::tree::PrintTreeNode<Galaxy>>> {
+        vec![]
     }
 }
 

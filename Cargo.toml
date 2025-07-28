@@ -12,6 +12,7 @@ license-file = "license"
 better-panic = "0.3.0"
 chrono = { version = "0.4.41", features = [ "serde" ] }
 clap = { version = "4.5.41", features = ["derive"] }
+colored = "3.0.0"
 crossterm = "0.28.1"
 directories = "6.0.0"
 log = "0.4.27"
