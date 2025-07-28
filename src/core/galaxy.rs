@@ -576,7 +576,7 @@ mod test {
           "old": "Todo",
           "new": "Hold",
           "comment": "No",
-          "time": "2020-12-25T19:33:51-05:00"
+          "time": "2020-12-25T19:33:51Z"
         }
       ],
       "tags": [],
@@ -695,7 +695,7 @@ mod test {
                     old: Status::Todo,
                     new: Status::Hold,
                     comment: "No".into(),
-                    time: DateTime::parse_from_rfc3339("2020-12-25T19:33:51-05:00")
+                    time: DateTime::parse_from_rfc3339("2020-12-25T19:33:51Z")
                         .unwrap()
                         .into()
                 }],
@@ -778,7 +778,7 @@ mod test {
                         old: Status::Todo,
                         new: Status::Hold,
                         comment: "No".to_string(),
-                        time: DateTime::parse_from_rfc3339("2020-12-25T19:33:51-05:00")
+                        time: DateTime::parse_from_rfc3339("2020-12-25T19:33:51Z")
                             .unwrap()
                             .into(),
                     }],

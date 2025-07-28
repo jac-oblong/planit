@@ -55,7 +55,7 @@ pub mod star;
 
 use std::fmt::Display;
 
-use chrono::{DateTime, Local};
+use chrono::{DateTime, Utc};
 use colored::Colorize;
 use serde::{Deserialize, Serialize};
 
@@ -186,5 +186,5 @@ pub struct StatusHistory {
     old: Status,
     new: Status,
     comment: String,
-    time: DateTime<Local>,
+    time: DateTime<Utc>,
 }

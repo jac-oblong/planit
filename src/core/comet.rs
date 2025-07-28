@@ -33,7 +33,7 @@
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
-use chrono::Local;
+use chrono::Utc;
 use colored::Colorize;
 use log::info;
 use serde::{Deserialize, Serialize};
@@ -89,7 +89,7 @@ impl CelestialBody<'_> for Comet {
             old: self.status,
             new: status,
             comment,
-            time: Local::now(),
+            time: Utc::now(),
         });
         info!(
             "Comet ({}) changed status from {} to {}",
@@ -141,9 +141,9 @@ mod test {
     #[test]
     fn changing_status_adds_to_history() {
         let mut comet = Comet::default();
-        let t1 = Local::now();
+        let t1 = Utc::now();
         comet.status(Status::Start, "1".to_string());
-        let t2 = Local::now();
+        let t2 = Utc::now();
         comet.status(Status::Done, "2".to_string());
 
         assert_eq!(comet.history.len(), 2);
