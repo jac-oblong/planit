@@ -56,6 +56,7 @@ pub mod star;
 use std::fmt::Display;
 
 use chrono::{DateTime, Local};
+use colored::Colorize;
 use serde::{Deserialize, Serialize};
 
 use crate::app::cli;
@@ -63,6 +64,7 @@ pub use crate::core::comet::Comet;
 pub use crate::core::galaxy::{CelestialBodyIndex, Galaxy};
 pub use crate::core::planet::Planet;
 pub use crate::core::star::Star;
+use crate::util;
 
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
@@ -80,7 +82,7 @@ type ID = u64;
 
 /// Trait that all celestial bodies must implement
 pub trait CelestialBody<'a>:
-    std::fmt::Debug + Deserialize<'a> + Serialize + PartialEq + Eq
+    std::fmt::Debug + Deserialize<'a> + Serialize + PartialEq + Eq + util::tree::PrintTreeNode<Galaxy>
 {
     /// Constructor that uses `id` for the new celestial body
     fn new(id: ID) -> Self;
@@ -154,6 +156,20 @@ impl Display for Status {
             Self::Hold => write!(f, "Hold"),
             Self::Done => write!(f, "Done"),
             Self::Cancel => write!(f, "Cancel"),
+        }
+    }
+}
+
+impl From<Status> for colored::ColoredString {
+    fn from(value: Status) -> Self {
+        match value {
+            Status::Todo => "Todo ".bright_yellow(),
+            Status::Next => "Next ".purple(),
+            Status::Start => "Start ".green(),
+            Status::Hold => "Hold ".bright_black(),
+            Status::Block => "Block ".red(),
+            Status::Done => "Done  ".bright_black(),
+            Status::Cancel => "Cancel".bright_black(),
         }
     }
 }

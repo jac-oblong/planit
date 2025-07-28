@@ -34,10 +34,13 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 use chrono::Local;
+use colored::Colorize;
 use log::info;
 use serde::{Deserialize, Serialize};
 
-use super::{CelestialBody, Status, StatusHistory, ID};
+use crate::util;
+
+use super::{CelestialBody, Galaxy, Status, StatusHistory, ID};
 
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
@@ -98,6 +101,56 @@ impl CelestialBody<'_> for Star {
         );
         self.status = status;
         self
+    }
+}
+
+impl util::tree::PrintTreeNode<Galaxy> for Star {
+    fn icon(&self) -> colored::ColoredString {
+        "".yellow()
+    }
+
+    fn label(&self) -> colored::ColoredString {
+        "[STAR]  ".yellow() // Added spaces line it up with planet
+    }
+
+    fn status(&self) -> colored::ColoredString {
+        self.status.into()
+    }
+
+    fn title(&self) -> colored::ColoredString {
+        colored::ColoredString::from(self.title.clone())
+    }
+
+    fn description(&self) -> colored::ColoredString {
+        self.description.bright_black()
+    }
+
+    fn children<'a>(
+        &self,
+        root: &'a Galaxy,
+    ) -> Vec<Box<&'a dyn util::tree::PrintTreeNode<Galaxy>>> {
+        let children = self
+            .children
+            .iter()
+            .map(|child| match root.index(*child) {
+                Some(index) => match index.kind {
+                    super::CelestialBodyKind::Comet => Box::new(
+                        &root.comets[index.index] as &dyn util::tree::PrintTreeNode<Galaxy>,
+                    ),
+                    super::CelestialBodyKind::Planet => Box::new(
+                        &root.planets[index.index] as &dyn util::tree::PrintTreeNode<Galaxy>,
+                    ),
+                    super::CelestialBodyKind::Star => {
+                        Box::new(&root.stars[index.index] as &dyn util::tree::PrintTreeNode<Galaxy>)
+                    }
+                },
+                None => panic!(
+                    "Child with id {} of star {} did not match any index",
+                    child, self.id
+                ),
+            })
+            .collect();
+        children
     }
 }
 

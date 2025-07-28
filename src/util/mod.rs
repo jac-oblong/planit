@@ -30,4 +30,5 @@
 pub mod dir;
 pub mod log;
 pub mod panic;
+pub mod tree;
 pub mod tui;
