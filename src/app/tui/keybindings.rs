@@ -1,5 +1,4 @@
 ////////////////////////////////////////////////////////////////////////////
-//                                                                        //
 // The MIT License (MIT)                                                  //
 //                                                                        //
 // Copyright (c) 2025 Jacob Long                                          //
@@ -22,12 +21,12 @@
 // CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,   //
 // TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE      //
 // SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                 //
-//                                                                        //
 ////////////////////////////////////////////////////////////////////////////
 
 /*!
- * Contains the implementation of the application. This includes both the
- * command line version and TUI version.
+ * Contains the implementation for receiving key inputs and translating them to
+ * app commands. The function is blocking, so should only be called in a
+ * separate thread.
  */
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -36,29 +35,20 @@
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
-pub mod cli;
-pub mod tui;
+use std::{sync::mpsc, time::Duration};
+
+use crossterm::event::{self, Event, KeyCode, KeyEventKind};
+
+use super::AppCommand;
 
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
-//                                  IMPORTS                                   //
+//                                   CONSTS                                   //
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
-use std::{env, io};
-
-pub use cli::Cli;
-use cli::Commands;
-
-use crate::core::DatabaseError;
-
-////////////////////////////////////////////////////////////////////////////////
-//                                                                            //
-//                                   TYPES                                    //
-//                                                                            //
-////////////////////////////////////////////////////////////////////////////////
-
-type Result<T> = std::result::Result<T, AppError>;
+const KEY_SEQUENCE_TIMEOUT_MS: u64 = 500;
+const KEY_SEQUENCE_RESOLUTION_MS: u64 = 10;
 
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
@@ -66,42 +56,24 @@ type Result<T> = std::result::Result<T, AppError>;
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
-/// All errors that might happen when running the application
-#[derive(Debug)]
-pub enum AppError {
-    IoError(io::Error),
-    DatabaseError(DatabaseError),
-    RecvError(std::sync::mpsc::RecvError),
+/// Current keybindings mode
+#[derive(Debug, Default)]
+enum Mode {
+    #[default]
+    Normal,
+    Command,
+    Insert,
 }
 
-impl std::fmt::Display for AppError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::IoError(e) => write!(f, "Error during IO operation: {e}"),
-            Self::DatabaseError(e) => write!(f, "Error during database operation: {e}"),
-            Self::RecvError(e) => write!(f, "Error during receive operation: {e}")
-        }
-    }
-}
+////////////////////////////////////////////////////////////////////////////////
+//                                                                            //
+//                                  STRUCTS                                   //
+//                                                                            //
+////////////////////////////////////////////////////////////////////////////////
 
-impl std::error::Error for AppError {}
-
-impl From<io::Error> for AppError {
-    fn from(value: std::io::Error) -> Self {
-        Self::IoError(value)
-    }
-}
-
-impl From<DatabaseError> for AppError {
-    fn from(value: DatabaseError) -> Self {
-        Self::DatabaseError(value)
-    }
-}
-
-impl From<std::sync::mpsc::RecvError> for AppError {
-    fn from(value: std::sync::mpsc::RecvError) -> Self {
-        Self::RecvError(value)
-    }
+struct KeyBind {
+    keys: &'static str,
+    command: AppCommand,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -110,27 +82,26 @@ impl From<std::sync::mpsc::RecvError> for AppError {
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
-/// Runs the application. Does not return until all operations are completed.
-///
-/// # Arguments
-/// - `args`: The parsed command line arguments
-///
-/// # Returns
-/// Any errors that are encountered. `Ok(())` otherwise
-pub fn run(args: Cli) -> Result<()> {
-    if let Some(dir) = args.dir {
-        env::set_current_dir(dir)?;
-    }
+pub fn handle_keyboard_input(tx: mpsc::Sender<AppCommand>) -> ! {
+    let mut mode = Mode::default();
 
-    match args.verbose {
-        0 => {}
-        _ => todo!(),
-    }
+    loop {
+        let res = event::poll(Duration::from_millis(KEY_SEQUENCE_RESOLUTION_MS)).unwrap();
+        if !res {
+            continue;
+        }
 
-    match args.command {
-        Some(Commands::Init(args)) => cli::init(args),
-        Some(Commands::List(args)) => cli::list(args),
-        Some(Commands::New(args)) => cli::new(args),
-        None => tui::run(),
+        let input = event::read().unwrap();
+        match input {
+            Event::Key(key) if key.kind == KeyEventKind::Press => {
+                match key.code {
+                    KeyCode::Char('q') => {
+                        tx.send(AppCommand::Quit).unwrap();
+                    },
+                    _ => {}
+                }
+            },
+            _ => {}
+        }
     }
 }

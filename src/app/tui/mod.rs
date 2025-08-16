@@ -1,5 +1,4 @@
 ////////////////////////////////////////////////////////////////////////////
-//                                                                        //
 // The MIT License (MIT)                                                  //
 //                                                                        //
 // Copyright (c) 2025 Jacob Long                                          //
@@ -22,12 +21,10 @@
 // CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,   //
 // TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE      //
 // SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                 //
-//                                                                        //
 ////////////////////////////////////////////////////////////////////////////
 
 /*!
- * Contains the implementation of the application. This includes both the
- * command line version and TUI version.
+ * Contains the implementation for the terminal user interface.
  */
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -36,8 +33,7 @@
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
-pub mod cli;
-pub mod tui;
+pub mod keybindings;
 
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
@@ -45,20 +41,13 @@ pub mod tui;
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
-use std::{env, io};
+use std::{sync::mpsc, thread};
 
-pub use cli::Cli;
-use cli::Commands;
+use ratatui::{text::Line, DefaultTerminal};
 
-use crate::core::DatabaseError;
+use crate::core::Galaxy;
 
-////////////////////////////////////////////////////////////////////////////////
-//                                                                            //
-//                                   TYPES                                    //
-//                                                                            //
-////////////////////////////////////////////////////////////////////////////////
-
-type Result<T> = std::result::Result<T, AppError>;
+use super::Result;
 
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
@@ -66,41 +55,56 @@ type Result<T> = std::result::Result<T, AppError>;
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
-/// All errors that might happen when running the application
+/// Commands that the application recognizes. Commands are not necessarily
+/// guaranteed to succeed. Errors will not be communicated back to the sender of
+/// the command.
 #[derive(Debug)]
-pub enum AppError {
-    IoError(io::Error),
-    DatabaseError(DatabaseError),
-    RecvError(std::sync::mpsc::RecvError),
+pub enum AppCommand {
+    /// Exit the application immediately
+    Quit
 }
 
-impl std::fmt::Display for AppError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::IoError(e) => write!(f, "Error during IO operation: {e}"),
-            Self::DatabaseError(e) => write!(f, "Error during database operation: {e}"),
-            Self::RecvError(e) => write!(f, "Error during receive operation: {e}")
+////////////////////////////////////////////////////////////////////////////////
+//                                                                            //
+//                                  STRUCTS                                   //
+//                                                                            //
+////////////////////////////////////////////////////////////////////////////////
+
+/// Contains the TUI application.
+#[derive(Debug)]
+struct App {
+    galaxy: Galaxy,
+}
+
+impl App {
+    /// Creates a new application struct for the TUI
+    ///
+    /// # Errors
+    /// - Will error if loading the `Galaxy` fails
+    fn new() -> Result<Self> {
+        Ok(Self {
+            galaxy: Galaxy::load()?,
+        })
+    }
+
+    /// Runs the application. Will return any errors that are encountered.
+    ///
+    /// # Arguments
+    /// - `terminal`: The default terminal to be drawn to. Should be the result
+    ///   of `ratatui::init()`
+    /// - `rx`: The channel that app commands will be sent through.
+    ///
+    /// # Errors
+    /// - Error while drawing to terminal
+    /// - Error while receiving commands from the channel
+    fn run(self, mut terminal: DefaultTerminal, rx: mpsc::Receiver<AppCommand>) -> Result<()> {
+        loop {
+            terminal.draw(|frame| frame.render_widget(Line::from("Planit").centered(), frame.area()))?;
+
+            match rx.recv()? {
+                AppCommand::Quit => break Ok(())
+            }
         }
-    }
-}
-
-impl std::error::Error for AppError {}
-
-impl From<io::Error> for AppError {
-    fn from(value: std::io::Error) -> Self {
-        Self::IoError(value)
-    }
-}
-
-impl From<DatabaseError> for AppError {
-    fn from(value: DatabaseError) -> Self {
-        Self::DatabaseError(value)
-    }
-}
-
-impl From<std::sync::mpsc::RecvError> for AppError {
-    fn from(value: std::sync::mpsc::RecvError) -> Self {
-        Self::RecvError(value)
     }
 }
 
@@ -110,27 +114,19 @@ impl From<std::sync::mpsc::RecvError> for AppError {
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
-/// Runs the application. Does not return until all operations are completed.
+/// Runs the TUI application. Will return when the application should exit.
 ///
-/// # Arguments
-/// - `args`: The parsed command line arguments
-///
-/// # Returns
-/// Any errors that are encountered. `Ok(())` otherwise
-pub fn run(args: Cli) -> Result<()> {
-    if let Some(dir) = args.dir {
-        env::set_current_dir(dir)?;
-    }
+/// # Errors
+/// - Any errors encountered during creation of the main application structure
+/// - Any errors encountered during running of the TUI application
+pub fn run() -> Result<()> {
+    let terminal = ratatui::init();
+    let (tx, rx) = mpsc::channel::<AppCommand>();
+    let app = App::new()?;
 
-    match args.verbose {
-        0 => {}
-        _ => todo!(),
-    }
+    thread::spawn(move || keybindings::handle_keyboard_input(tx));
+    app.run(terminal, rx)?;
+    ratatui::restore();
 
-    match args.command {
-        Some(Commands::Init(args)) => cli::init(args),
-        Some(Commands::List(args)) => cli::list(args),
-        Some(Commands::New(args)) => cli::new(args),
-        None => tui::run(),
-    }
+    Ok(())
 }
