@@ -79,7 +79,7 @@ impl std::fmt::Display for AppError {
         match self {
             Self::IoError(e) => write!(f, "Error during IO operation: {e}"),
             Self::DatabaseError(e) => write!(f, "Error during database operation: {e}"),
-            Self::RecvError(e) => write!(f, "Error during receive operation: {e}")
+            Self::RecvError(e) => write!(f, "Error during receive operation: {e}"),
         }
     }
 }

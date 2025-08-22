@@ -43,6 +43,7 @@ pub mod keybindings;
 
 use std::{sync::mpsc, thread};
 
+use log::debug;
 use ratatui::{text::Line, DefaultTerminal};
 
 use crate::core::Galaxy;
@@ -55,13 +56,26 @@ use super::Result;
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
+/// Current mode of the application. This is primarily based around Vim's modes.
+#[derive(Debug, Default, Copy, Clone, PartialEq)]
+pub enum AppMode {
+    #[default]
+    Normal,
+    Command,
+    Insert,
+}
+
 /// Commands that the application recognizes. Commands are not necessarily
 /// guaranteed to succeed. Errors will not be communicated back to the sender of
 /// the command.
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum AppCommand {
-    /// Exit the application immediately
-    Quit
+    /// Attempt to exit immediately
+    Quit,
+    /// Redraw the screen, no other operations are necessary
+    Redraw,
+    /// Update the application's mode to be the mode provided
+    UpdateMode(AppMode),
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -99,10 +113,15 @@ impl App {
     /// - Error while receiving commands from the channel
     fn run(self, mut terminal: DefaultTerminal, rx: mpsc::Receiver<AppCommand>) -> Result<()> {
         loop {
-            terminal.draw(|frame| frame.render_widget(Line::from("Planit").centered(), frame.area()))?;
+            terminal
+                .draw(|frame| frame.render_widget(Line::from("Planit").centered(), frame.area()))?;
 
-            match rx.recv()? {
-                AppCommand::Quit => break Ok(())
+            let command = rx.recv()?;
+            debug!("Application received command from channel: {command:?}");
+            match command {
+                AppCommand::Quit => break Ok(()),
+                AppCommand::Redraw => {} // will redraw on next iteration of loop
+                AppCommand::UpdateMode(mode) => todo!(),
             }
         }
     }
