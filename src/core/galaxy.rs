@@ -532,6 +532,11 @@ impl Galaxy {
 
         Ok(())
     }
+
+    /// Returns a copy of the title of the Galaxy
+    pub fn get_title_copy(&self) -> String {
+        self.title.clone()
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////

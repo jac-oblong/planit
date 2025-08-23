@@ -33,7 +33,9 @@
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
-pub mod keybindings;
+mod keybindings;
+mod statusline;
+mod view;
 
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
@@ -44,7 +46,12 @@ pub mod keybindings;
 use std::{sync::mpsc, thread};
 
 use log::debug;
-use ratatui::{text::Line, DefaultTerminal};
+use ratatui::{
+    layout::{Constraint, Layout},
+    DefaultTerminal,
+};
+use statusline::StatusLine;
+use view::View;
 
 use crate::core::Galaxy;
 
@@ -76,6 +83,19 @@ pub enum AppCommand {
     Redraw,
     /// Update the application's mode to be the mode provided
     UpdateMode(AppMode),
+    /// Move the focused view in the specified direction
+    MoveFocus(Direction),
+    /// Move the cursor in the specified direction
+    MoveCursor(Direction),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Direction {
+    Up,
+    Down,
+    Left,
+    Right,
+    Horizontal,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -87,7 +107,16 @@ pub enum AppCommand {
 /// Contains the TUI application.
 #[derive(Debug)]
 struct App {
+    /// All Stars, Planets, and Comets.
     galaxy: Galaxy,
+
+    /// The current mode of the application.
+    mode: AppMode,
+
+    /// The root view of the application.
+    view: Box<dyn view::View>,
+    /// The status line displayed at the bottom of the screen.
+    status: statusline::StatusLine,
 }
 
 impl App {
@@ -98,6 +127,9 @@ impl App {
     fn new() -> Result<Self> {
         Ok(Self {
             galaxy: Galaxy::load()?,
+            mode: AppMode::default(),
+            view: Box::new(view::OpeningView),
+            status: StatusLine::default(),
         })
     }
 
@@ -111,17 +143,25 @@ impl App {
     /// # Errors
     /// - Error while drawing to terminal
     /// - Error while receiving commands from the channel
-    fn run(self, mut terminal: DefaultTerminal, rx: mpsc::Receiver<AppCommand>) -> Result<()> {
+    fn run(mut self, mut terminal: DefaultTerminal, rx: mpsc::Receiver<AppCommand>) -> Result<()> {
         loop {
-            terminal
-                .draw(|frame| frame.render_widget(Line::from("Planit").centered(), frame.area()))?;
+            terminal.draw(|frame| {
+                let layout = Layout::default()
+                    .direction(ratatui::layout::Direction::Vertical)
+                    .constraints([Constraint::Fill(0), Constraint::Length(2)])
+                    .split(frame.area());
+                self.view.render(&self, layout[0], frame.buffer_mut());
+                self.status.render(&self, layout[1], frame.buffer_mut());
+            })?;
 
             let command = rx.recv()?;
             debug!("Application received command from channel: {command:?}");
             match command {
                 AppCommand::Quit => break Ok(()),
                 AppCommand::Redraw => {} // will redraw on next iteration of loop
-                AppCommand::UpdateMode(mode) => todo!(),
+                AppCommand::UpdateMode(mode) => self.mode = mode,
+                AppCommand::MoveCursor(direction) => todo!(),
+                AppCommand::MoveFocus(direction) => todo!(),
             }
         }
     }
