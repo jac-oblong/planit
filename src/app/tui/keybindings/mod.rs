@@ -44,7 +44,7 @@ use std::{
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use log::{debug, error, warn};
 
-use super::{AppCommand, AppMode};
+use super::{Command, Mode};
 
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
@@ -56,15 +56,15 @@ const KEY_SEQUENCE_TIMEOUT_MS: u64 = 500;
 const KEY_SEQUENCE_RESOLUTION_MS: u64 = 10;
 const KEY_SEQUENCE_ITERATIONS: u64 = KEY_SEQUENCE_TIMEOUT_MS / KEY_SEQUENCE_RESOLUTION_MS;
 
-const NORMAL_MODE_KEYBINDINGS: &[(&'static str, AppCommand)] = &[
-    ("i", AppCommand::UpdateMode(AppMode::Insert)),
-    (":", AppCommand::UpdateMode(AppMode::Command)),
-    ("q", AppCommand::Quit),
+const NORMAL_MODE_KEYBINDINGS: &[(&'static str, Command)] = &[
+    ("i", Command::UpdateMode(Mode::Insert)),
+    (":", Command::UpdateMode(Mode::Command)),
+    ("q", Command::Quit),
 ];
-const COMMAND_MODE_KEYBINDINGS: &[(&'static str, AppCommand)] =
-    &[("j k", AppCommand::UpdateMode(AppMode::Normal))];
-const INSERT_MODE_KEYBINDINGS: &[(&'static str, AppCommand)] =
-    &[("j k", AppCommand::UpdateMode(AppMode::Normal))];
+const COMMAND_MODE_KEYBINDINGS: &[(&'static str, Command)] =
+    &[("j k", Command::UpdateMode(Mode::Normal))];
+const INSERT_MODE_KEYBINDINGS: &[(&'static str, Command)] =
+    &[("j k", Command::UpdateMode(Mode::Normal))];
 
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
@@ -157,14 +157,14 @@ impl From<&KeyEvent> for Key {
 #[derive(Debug, Default, Clone, PartialEq)]
 struct KeyBind {
     /// The command to use, if this is the end of a key sequence.
-    command: Option<AppCommand>,
+    command: Option<Command>,
     /// Other keys that are accepted in the continuation of this sequence.
     sequence: Option<KeyBinds>,
 }
 
 impl KeyBind {
     /// Inserts a command or sequence at this point
-    pub fn insert(&mut self, keys: VecDeque<Key>, command: AppCommand) {
+    pub fn insert(&mut self, keys: VecDeque<Key>, command: Command) {
         if keys.len() == 0 {
             if self.command.is_some() {
                 warn!(
@@ -193,7 +193,7 @@ struct KeyBinds(HashMap<Key, KeyBind>);
 
 impl KeyBinds {
     /// Inserts the keybinding
-    pub fn insert(&mut self, mut keys: VecDeque<Key>, command: AppCommand) {
+    pub fn insert(&mut self, mut keys: VecDeque<Key>, command: Command) {
         let first = keys.pop_front().unwrap();
         let sequence = self.0.entry(first).or_insert(KeyBind::default());
         sequence.insert(keys, command);
@@ -253,9 +253,9 @@ impl KeyBinds {
     ///
     /// # Returns
     /// A vector containing all commands that were found.
-    pub fn try_match(&self, keys: &mut Vec<KeyEvent>) -> Vec<AppCommand> {
+    pub fn try_match(&self, keys: &mut Vec<KeyEvent>) -> Vec<Command> {
         let mut commands = Vec::new();
-        let mut previous_command: Option<AppCommand> = None;
+        let mut previous_command: Option<Command> = None;
         let mut previous_end: usize = 0;
         let mut previous_bind_had_continuation: bool = false;
 
@@ -287,7 +287,7 @@ impl KeyBinds {
                     // If we change modes, do not match more keys, as the key
                     // bindings have changed.
                     match command {
-                        AppCommand::UpdateMode(_) => break,
+                        Command::UpdateMode(_) => break,
                         _ => {}
                     }
                 } else {
@@ -305,7 +305,7 @@ impl KeyBinds {
     /// Matches the sequence of keys to key bindings. Any matched keys will be
     /// removed from the queue. All keys will either be matched to a keybinding
     /// or discarded. The only exception to this is if a
-    /// `AppCommand::UpdateMode` command is matched. In this case, all keys
+    /// `Command::UpdateMode` command is matched. In this case, all keys
     /// after this command will remain.
     ///
     /// # Arguments
@@ -313,9 +313,9 @@ impl KeyBinds {
     ///
     /// # Returns
     /// A vector containing all commands that were found.
-    pub fn force_match(&self, keys: &mut Vec<KeyEvent>) -> Vec<AppCommand> {
+    pub fn force_match(&self, keys: &mut Vec<KeyEvent>) -> Vec<Command> {
         let mut commands = Vec::new();
-        let mut previous_command: Option<AppCommand> = None;
+        let mut previous_command: Option<Command> = None;
         let mut previous_end: usize = 0;
 
         let mut current_end: usize = 1;
@@ -339,7 +339,7 @@ impl KeyBinds {
                     // If we change modes, do not match more keys, as the key
                     // bindings have changed. Do not drain the keys either.
                     match command {
-                        AppCommand::UpdateMode(_) => break,
+                        Command::UpdateMode(_) => break,
                         _ => {}
                     }
                 } else if current_end <= keys.len() {
@@ -357,8 +357,8 @@ impl KeyBinds {
     }
 }
 
-impl From<&[(&'static str, AppCommand)]> for KeyBinds {
-    fn from(value: &[(&'static str, AppCommand)]) -> Self {
+impl From<&[(&'static str, Command)]> for KeyBinds {
+    fn from(value: &[(&'static str, Command)]) -> Self {
         let mut bindings = Self::default();
 
         for (sequence, command) in value {
@@ -390,7 +390,7 @@ impl From<&[(&'static str, AppCommand)]> for KeyBinds {
 /// - Will panic if there is a error while polling / reading events.
 ///   `crossterm::event::poll` and `crossterm::event::read` are the two
 ///   functions that may return errors that cause panics.
-pub fn handle_keyboard_input(tx: mpsc::Sender<AppCommand>) -> ! {
+pub fn handle_keyboard_input(tx: mpsc::Sender<Command>) -> ! {
     /// Controls how the input queue is matched to bindings. This is reset to
     /// `NoMatch` at every iteration of the loop and it is up to the logic
     /// within the loop to try to match or force matches.
@@ -403,7 +403,7 @@ pub fn handle_keyboard_input(tx: mpsc::Sender<AppCommand>) -> ! {
 
     // The mode of the application. Anytime this is changed, the change should\
     // also be sent through the channel.
-    let mut mode = AppMode::default();
+    let mut mode = Mode::default();
     // Queue of key inputs. This is built up to match key sequences. Once a
     // sequence is matched (and no other sequences have partial matches) or the
     // sequence has timed out, the keys will be processed.
@@ -444,9 +444,9 @@ pub fn handle_keyboard_input(tx: mpsc::Sender<AppCommand>) -> ! {
         loop {
             let mut mode_has_not_changed = true;
             let binds = match mode {
-                AppMode::Normal => &normal_binds,
-                AppMode::Command => &command_binds,
-                AppMode::Insert => &insert_binds,
+                Mode::Normal => &normal_binds,
+                Mode::Command => &command_binds,
+                Mode::Insert => &insert_binds,
             };
 
             let commands = match should_match {
@@ -459,7 +459,7 @@ pub fn handle_keyboard_input(tx: mpsc::Sender<AppCommand>) -> ! {
 
             for command in commands {
                 match command {
-                    AppCommand::UpdateMode(new_mode) => {
+                    Command::UpdateMode(new_mode) => {
                         mode = new_mode;
                         mode_has_not_changed = false;
                     }
@@ -486,10 +486,10 @@ pub fn handle_keyboard_input(tx: mpsc::Sender<AppCommand>) -> ! {
 mod test {
     use super::*;
 
-    const KEY_BINDS: &[(&'static str, AppCommand)] = &[
-        ("a b", AppCommand::Quit),
-        ("a b c", AppCommand::Redraw),
-        ("x y", AppCommand::UpdateMode(AppMode::Command)),
+    const KEY_BINDS: &[(&'static str, Command)] = &[
+        ("a b", Command::Quit),
+        ("a b c", Command::Redraw),
+        ("x y", Command::UpdateMode(Mode::Command)),
     ];
 
     #[test]
@@ -563,11 +563,11 @@ mod test {
                         sequence: Some(KeyBinds(HashMap::from([(
                             Key::from("b"),
                             KeyBind {
-                                command: Some(AppCommand::Quit),
+                                command: Some(Command::Quit),
                                 sequence: Some(KeyBinds(HashMap::from([(
                                     Key::from("c"),
                                     KeyBind {
-                                        command: Some(AppCommand::Redraw),
+                                        command: Some(Command::Redraw),
                                         sequence: None
                                     }
                                 )])))
@@ -582,7 +582,7 @@ mod test {
                         sequence: Some(KeyBinds(HashMap::from([(
                             Key::from("y"),
                             KeyBind {
-                                command: Some(AppCommand::UpdateMode(AppMode::Command)),
+                                command: Some(Command::UpdateMode(Mode::Command)),
                                 sequence: None
                             }
                         )])))
@@ -602,7 +602,7 @@ mod test {
         ];
         let commands = binds.try_match(&mut keys);
         assert_eq!(keys, vec![]);
-        assert_eq!(commands, vec![AppCommand::Redraw]);
+        assert_eq!(commands, vec![Command::Redraw]);
     }
 
     #[test]
@@ -654,7 +654,7 @@ mod test {
         ];
         let commands = binds.try_match(&mut keys);
         assert_eq!(keys, vec![KeyEvent::from(KeyCode::Char('x'))]);
-        assert_eq!(commands, vec![AppCommand::Quit]);
+        assert_eq!(commands, vec![Command::Quit]);
     }
 
     #[test]
@@ -680,7 +680,7 @@ mod test {
         );
         assert_eq!(
             commands,
-            vec![AppCommand::Quit, AppCommand::UpdateMode(AppMode::Command)]
+            vec![Command::Quit, Command::UpdateMode(Mode::Command)]
         );
     }
 
@@ -694,7 +694,7 @@ mod test {
         ];
         let commands = binds.force_match(&mut keys);
         assert_eq!(keys, vec![]);
-        assert_eq!(commands, vec![AppCommand::Redraw]);
+        assert_eq!(commands, vec![Command::Redraw]);
     }
 
     #[test]
@@ -727,7 +727,7 @@ mod test {
         ];
         let commands = binds.force_match(&mut keys);
         assert_eq!(keys, vec![]);
-        assert_eq!(commands, vec![AppCommand::Quit]);
+        assert_eq!(commands, vec![Command::Quit]);
     }
 
     #[test]
@@ -740,7 +740,7 @@ mod test {
         ];
         let commands = binds.force_match(&mut keys);
         assert_eq!(keys, vec![]);
-        assert_eq!(commands, vec![AppCommand::Quit]);
+        assert_eq!(commands, vec![Command::Quit]);
     }
 
     #[test]
@@ -766,7 +766,7 @@ mod test {
         );
         assert_eq!(
             commands,
-            vec![AppCommand::Quit, AppCommand::UpdateMode(AppMode::Command)]
+            vec![Command::Quit, Command::UpdateMode(Mode::Command)]
         );
     }
 }

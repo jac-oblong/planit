@@ -43,7 +43,7 @@ use ratatui::{
     widgets::Widget,
 };
 
-use crate::app::tui::AppMode;
+use crate::app::tui::Mode;
 
 use super::{view::View, App};
 
@@ -61,14 +61,14 @@ pub struct StatusLine;
 impl View for StatusLine {
     fn render(&self, app: &App, area: Rect, buf: &mut Buffer) {
         let mode = match app.mode {
-            AppMode::Normal => "[NORMAL]  ",
-            AppMode::Insert => "[INSERT]  ",
-            AppMode::Command => "[COMMAND]  ",
+            Mode::Normal => "[NORMAL]  ",
+            Mode::Insert => "[INSERT]  ",
+            Mode::Command => "[COMMAND]  ",
         };
         let mode = match app.mode {
-            AppMode::Normal => Span::from(mode).style(Style::default().fg(Color::Green)),
-            AppMode::Insert => Span::from(mode).style(Style::default().fg(Color::Magenta)),
-            AppMode::Command => Span::from(mode).style(Style::default().fg(Color::Blue)),
+            Mode::Normal => Span::from(mode).style(Style::default().fg(Color::Green)),
+            Mode::Insert => Span::from(mode).style(Style::default().fg(Color::Magenta)),
+            Mode::Command => Span::from(mode).style(Style::default().fg(Color::Blue)),
         };
         let title = Span::from(app.galaxy.get_title_copy());
         let line = Line::from(vec![mode, title]).style(Style::default().bg(Color::Black));

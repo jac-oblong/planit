@@ -65,7 +65,7 @@ use super::Result;
 
 /// Current mode of the application. This is primarily based around Vim's modes.
 #[derive(Debug, Default, Copy, Clone, PartialEq)]
-pub enum AppMode {
+pub enum Mode {
     #[default]
     Normal,
     Command,
@@ -76,21 +76,21 @@ pub enum AppMode {
 /// guaranteed to succeed. Errors will not be communicated back to the sender of
 /// the command.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub enum AppCommand {
+pub enum Command {
     /// Attempt to exit immediately
     Quit,
     /// Redraw the screen, no other operations are necessary
     Redraw,
     /// Update the application's mode to be the mode provided
-    UpdateMode(AppMode),
+    UpdateMode(Mode),
     /// Move the focused view in the specified direction
-    MoveFocus(Direction),
+    MoveFocus(MovementDirection),
     /// Move the cursor in the specified direction
-    MoveCursor(Direction),
+    MoveCursor(MovementDirection),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Direction {
+pub enum MovementDirection {
     Up,
     Down,
     Left,
@@ -111,7 +111,7 @@ struct App {
     galaxy: Galaxy,
 
     /// The current mode of the application.
-    mode: AppMode,
+    mode: Mode,
 
     /// The root view of the application.
     view: Box<dyn view::View>,
@@ -127,7 +127,7 @@ impl App {
     fn new() -> Result<Self> {
         Ok(Self {
             galaxy: Galaxy::load()?,
-            mode: AppMode::default(),
+            mode: Mode::default(),
             view: Box::new(view::OpeningView),
             status: StatusLine::default(),
         })
@@ -143,7 +143,7 @@ impl App {
     /// # Errors
     /// - Error while drawing to terminal
     /// - Error while receiving commands from the channel
-    fn run(mut self, mut terminal: DefaultTerminal, rx: mpsc::Receiver<AppCommand>) -> Result<()> {
+    fn run(mut self, mut terminal: DefaultTerminal, rx: mpsc::Receiver<Command>) -> Result<()> {
         loop {
             terminal.draw(|frame| {
                 let layout = Layout::default()
@@ -157,11 +157,11 @@ impl App {
             let command = rx.recv()?;
             debug!("Application received command from channel: {command:?}");
             match command {
-                AppCommand::Quit => break Ok(()),
-                AppCommand::Redraw => {} // will redraw on next iteration of loop
-                AppCommand::UpdateMode(mode) => self.mode = mode,
-                AppCommand::MoveCursor(direction) => todo!(),
-                AppCommand::MoveFocus(direction) => todo!(),
+                Command::Quit => break Ok(()),
+                Command::Redraw => {} // will redraw on next iteration of loop
+                Command::UpdateMode(mode) => self.mode = mode,
+                Command::MoveCursor(direction) => todo!(),
+                Command::MoveFocus(direction) => todo!(),
             }
         }
     }
@@ -180,7 +180,7 @@ impl App {
 /// - Any errors encountered during running of the TUI application
 pub fn run() -> Result<()> {
     let terminal = ratatui::init();
-    let (tx, rx) = mpsc::channel::<AppCommand>();
+    let (tx, rx) = mpsc::channel::<Command>();
     let app = App::new()?;
 
     thread::spawn(move || keybindings::handle_keyboard_input(tx));
