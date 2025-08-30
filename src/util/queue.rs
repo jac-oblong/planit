@@ -24,12 +24,45 @@
 ////////////////////////////////////////////////////////////////////////////
 
 /*!
- * A collection of helper utility functions
+ * Contains the implementation of the `PushQueue` data structure. This data
+ * structure is a queue that can only be pushed into using `push_back`. It
+ * supports `From<VecDeque>` and `Into<VecDeque>`. Its primary purpose is to
+ * allow others to push into the queue without fear of the items already in the
+ * queue being altered.
  */
 
-pub mod dir;
-pub mod log;
-pub mod panic;
-pub mod queue;
-pub mod tree;
-pub mod tui;
+////////////////////////////////////////////////////////////////////////////////
+//                                                                            //
+//                                  IMPORTS                                   //
+//                                                                            //
+////////////////////////////////////////////////////////////////////////////////
+
+use std::collections::VecDeque;
+
+////////////////////////////////////////////////////////////////////////////////
+//                                                                            //
+//                                  STRUCTS                                   //
+//                                                                            //
+////////////////////////////////////////////////////////////////////////////////
+
+/// A queue that only allows new items to be pushed into the back of it.
+pub struct PushQueue<T>(VecDeque<T>);
+
+impl<T> PushQueue<T> {
+    /// Appends the provided element into the back of the queue.
+    pub fn push_back(&mut self, value: T) {
+        self.0.push_back(value);
+    }
+}
+
+impl<T> From<VecDeque<T>> for PushQueue<T> {
+    fn from(value: VecDeque<T>) -> Self {
+        Self(value)
+    }
+}
+
+impl<T> Into<VecDeque<T>> for PushQueue<T> {
+    fn into(self) -> VecDeque<T> {
+        self.0
+    }
+}

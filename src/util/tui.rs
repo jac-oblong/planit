@@ -33,7 +33,7 @@
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
-use ratatui::layout::{Constraint, Direction, Layout, Rect};
+use ratatui::layout::{Constraint, Direction, Flex, Layout, Rect};
 
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
@@ -42,27 +42,30 @@ use ratatui::layout::{Constraint, Direction, Layout, Rect};
 ////////////////////////////////////////////////////////////////////////////////
 
 /// Helper function to create a centered rectangle using a certain percentage
-/// of the rectange `r`.
+/// of the rectange `area`.
 ///
 /// # Arguments
-/// - `r`: Rectangle within which the new rectangle should be centered.
+/// - `area`: Rectangle within which the new rectangle should be centered.
 /// - `percent_x`: Percentage in range (0, 100]. The center `percent_x` percent
-///   of the horizontal part of `r` will be used for the new rectangle.
+///   of the horizontal part of `area` will be used for the new rectangle.
 /// - `percent_y`: Percentage in range (0, 100]. The center `percent_y` percent
-///   of the vertical part of `r` will be used for the new rectangle.
+///   of the vertical part of `area` will be used for the new rectangle.
 ///
 /// # Returns
-/// A new rectangle that is centered within `r`
-pub fn center_rect(r: Rect, percent_x: u16, percent_y: u16) -> Rect {
+/// A new rectangle that is centered within `area`
+pub fn center_with_percent(area: Rect, percent_x: u16, percent_y: u16) -> Rect {
+    debug_assert!(percent_x < 100);
+    debug_assert!(percent_y < 100);
+
     // Cut the given rectangle into three vertical pieces
-    let popup_layout = Layout::default()
+    let layout = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Percentage((100 - percent_y) / 2),
             Constraint::Percentage(percent_y),
             Constraint::Percentage((100 - percent_y) / 2),
         ])
-        .split(r);
+        .split(area);
 
     // Then cut the middle vertical piece into three width-wise pieces
     Layout::default()
@@ -72,5 +75,23 @@ pub fn center_rect(r: Rect, percent_x: u16, percent_y: u16) -> Rect {
             Constraint::Percentage(percent_x),
             Constraint::Percentage((100 - percent_x) / 2),
         ])
-        .split(popup_layout[1])[1] // Return the middle chunk
+        .split(layout[1])[1] // Return the middle chunk
+}
+
+/// Helper function to create a centered rectangle using constraints on the
+/// rectangle `area`.
+///
+/// # Arguments
+/// - `area`: Rectangle within which the new rectangle should be centered.
+/// - `horizontal`: The horizontal constraint that should be used.
+/// - `percent_y`: The vertical constraint that should be used.
+///
+/// # Returns
+/// A new rectangle that is centered within `area`
+pub fn center_with_constraints(area: Rect, horizontal: Constraint, vertical: Constraint) -> Rect {
+    let [area] = Layout::horizontal([horizontal])
+        .flex(Flex::Center)
+        .areas(area);
+    let [area] = Layout::vertical([vertical]).flex(Flex::Center).areas(area);
+    area
 }

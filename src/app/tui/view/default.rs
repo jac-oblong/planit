@@ -24,12 +24,44 @@
 ////////////////////////////////////////////////////////////////////////////
 
 /*!
- * A collection of helper utility functions
+ * Contains the implementation for the default view. This is the view shown when
+ * a new view is opened. It is a completely empty view, and does not respond to
+ * any commands.
+ *
+ * NOTE: This is not the view shown when the application is originally opened.
  */
 
-pub mod dir;
-pub mod log;
-pub mod panic;
-pub mod queue;
-pub mod tree;
-pub mod tui;
+////////////////////////////////////////////////////////////////////////////////
+//                                                                            //
+//                                  IMPORTS                                   //
+//                                                                            //
+////////////////////////////////////////////////////////////////////////////////
+
+use ratatui::{
+    buffer::Buffer,
+    layout::Rect,
+    widgets::{Clear, Widget},
+};
+
+use crate::util::queue::PushQueue;
+
+use super::{super::Command, View};
+
+////////////////////////////////////////////////////////////////////////////////
+//                                                                            //
+//                                  STRUCTS                                   //
+//                                                                            //
+////////////////////////////////////////////////////////////////////////////////
+
+/// The default view. This is the view that is shown when no view has been
+/// selected. It will display nothing (just a blank screen).
+#[derive(Debug)]
+pub struct DefaultView;
+
+impl View for DefaultView {
+    fn render(&self, area: Rect, buf: &mut Buffer) {
+        Clear.render(area, buf);
+    }
+
+    fn update(&mut self, _: Command, _: &mut PushQueue<Command>) {}
+}

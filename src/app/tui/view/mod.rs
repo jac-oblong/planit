@@ -24,9 +24,20 @@
 ////////////////////////////////////////////////////////////////////////////
 
 /*!
- * Contains implementations for app views. These views directly control what the
- * user sees.
+ * Contains the `View` trait. This trait defines the interface with which the
+ * application will interact with all views. It also contains the `PaneView`
+ * implementation. This is the structure the application uses to organize views
+ * and divide them into panes.
  */
+
+////////////////////////////////////////////////////////////////////////////////
+//                                                                            //
+//                                  MODULES                                   //
+//                                                                            //
+////////////////////////////////////////////////////////////////////////////////
+
+mod default;
+mod opening;
 
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
@@ -34,17 +45,18 @@
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
-use std::fmt::Debug;
+use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
+use default::DefaultView;
+use opening::OpeningView;
 use ratatui::{
     buffer::Buffer,
-    layout::{Constraint, Direction, Layout, Rect},
-    style::{Color, Style},
-    text::Line,
-    widgets::{Clear, Paragraph, Widget},
+    layout::{Constraint, Layout, Rect},
 };
 
-use super::App;
+use crate::{core::Galaxy, util::queue::PushQueue};
+
+use super::{Command, MovementDirection, SplitDirection};
 
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
@@ -58,10 +70,69 @@ pub trait View: Debug {
     /// given if the view relies on the state of the application.
     ///
     /// # Arguments
-    /// - `app`: The current state of the application.
     /// - `area`: The area within the buffer that is owned by this view.
     /// - `buf`: The buffer to render into.
-    fn render(&self, app: &App, area: Rect, buf: &mut Buffer);
+    fn render(&self, area: Rect, buf: &mut Buffer);
+
+    /// Updates self based on the given command. Any commands that are not
+    /// recognized should be ignored. If the handling of the command results in
+    /// other commands that should be processed, the extra commands should be
+    /// added to `queue`.
+    ///
+    /// # Arguments
+    /// - `command`: The command to be processed.
+    /// - `queue`: All commands that are still waiting to be processed. Any new
+    ///   commands that arise from processing `command` should be added to this.
+    fn update(&mut self, command: Command, queue: &mut PushQueue<Command>);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//                                                                            //
+//                                   ENUMS                                    //
+//                                                                            //
+////////////////////////////////////////////////////////////////////////////////
+
+/// A node within the `PaneView`. This can either hold a branch or a leaf.
+#[derive(Debug)]
+enum PaneNode {
+    /// A further collection of views split in a certain direction.
+    Branch(PaneBranch),
+    /// A single view.
+    Leaf(Box<dyn View>),
+}
+
+impl PaneNode {
+    /// Splits the current node in the direction specified. The provided view
+    /// will be placed in the newly created area.
+    ///
+    /// # Arguments
+    /// - `direction`: Direction in which to split the focused view.
+    /// - `new_view`: The view to use for the newly created area.
+    fn split(&mut self, direction: SplitDirection, new_view: Box<dyn View>) {
+        match self {
+            PaneNode::Leaf(view) => {
+                let nodes: Vec<PaneNode> = vec![PaneNode::Leaf(*view), PaneNode::Leaf(new_view)];
+                *self = PaneNode::Branch(PaneBranch::new(direction, nodes));
+            }
+            PaneNode::Branch(branch) => branch.split(direction, new_view),
+        }
+    }
+}
+
+impl View for PaneNode {
+    fn render(&self, area: Rect, buf: &mut Buffer) {
+        match self {
+            PaneNode::Branch(branch) => branch.render(area, buf),
+            PaneNode::Leaf(view) => view.render(area, buf),
+        }
+    }
+
+    fn update(&mut self, command: Command, queue: &mut PushQueue<Command>) {
+        match self {
+            PaneNode::Branch(branch) => branch.update(command, queue),
+            PaneNode::Leaf(view) => view.update(command, queue),
+        }
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -70,53 +141,119 @@ pub trait View: Debug {
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
-/// The default view. This is the view that is shown when no view has been
-/// selected. It will display nothing (just a blank screen).
+/// Organizes multiple views into a grid of panes. This grid can be made up of
+/// both vertical and horizontal splits.
 #[derive(Debug)]
-pub struct DefaultView;
+pub struct PaneView {
+    /// Reference to the global galaxy.
+    galaxy: Rc<RefCell<Galaxy>>,
+    /// The root of the tree of panes.
+    root: PaneNode,
+}
 
-impl View for DefaultView {
-    fn render(&self, _: &App, area: Rect, buf: &mut Buffer) {
-        Clear.render(area, buf);
+impl PaneView {
+    /// A conversion from a string identifier to a constructor for the
+    /// associated view. NOTE: This should eventually be converted into a
+    /// hashmap that views can register themselves to, but for now I am fine
+    /// with this method. The hashmap can happen when I create trackit.
+    const VIEW_CONSTRUCTORS: &[(
+        &'static str,
+        fn(galaxy: Rc<RefCell<Galaxy>>) -> Box<dyn View>,
+    )] = &[
+        ("opening", |_| Box::new(OpeningView)),
+        ("default", |_| Box::new(DefaultView)),
+    ];
+
+    /// Creates a new pane view with the opening view.
+    ///
+    /// # Arguments
+    /// - `galaxy`: A reference to the global galaxy.
+    pub fn new(galaxy: Rc<RefCell<Galaxy>>) -> Self {
+        let opening_view = Self::open_view("opening".to_string(), galaxy.clone()).unwrap();
+        Self {
+            galaxy,
+            root: PaneNode::Leaf(opening_view),
+        }
+    }
+
+    /// Calls the constructor for the view and returns the constructed view.
+    ///
+    /// # Arguments
+    /// - `view`: The string identifier for the view.
+    /// - `galaxy`: A reference to the global galaxy.
+    ///
+    /// # Returns
+    /// `Some(...)` if the identifier was found. `None` otherwise.
+    fn open_view(view: String, galaxy: Rc<RefCell<Galaxy>>) -> Option<Box<dyn View>> {
+        for (identifier, constructor) in Self::VIEW_CONSTRUCTORS {
+            if view == *identifier {
+                return Some(constructor(galaxy.clone()));
+            }
+        }
+        None
     }
 }
 
-/// The opening view. This is the view that is shown when the app is first
-/// opened. This includes things like version, helpful keybinds, etc.
-#[derive(Debug)]
-pub struct OpeningView;
+impl View for PaneView {
+    fn render(&self, area: Rect, buf: &mut Buffer) {
+        self.root.render(area, buf);
+    }
 
-impl View for OpeningView {
-    fn render(&self, _: &App, area: Rect, buf: &mut Buffer) {
-        let lines = vec![
-            Line::from(env!("CARGO_PKG_NAME"))
-                .centered()
-                .style(Style::default().fg(Color::Magenta)),
-            Line::from(env!("CARGO_PKG_DESCRIPTION")).centered(),
-            Line::from("").centered(),
-            Line::from(format!("version: {}", env!("CARGO_PKG_VERSION"))).centered(),
-            Line::from(format!("repo: {}", env!("CARGO_PKG_REPOSITORY"))).centered(),
-        ];
-        let paragraph = Paragraph::new(lines);
-        paragraph.render(area, buf);
+    fn update(&mut self, command: Command, queue: &mut PushQueue<Command>) {
+        match command {
+            Command::MoveFocus(direction) => self.root.move_focus(direction),
+            Command::SplitView(direction) => {
+                let new_view = Self::open_view("default".to_string(), self.galaxy.clone()).unwrap();
+                self.root.split(direction, new_view);
+            }
+            command => self.root.update(command, queue),
+        }
     }
 }
 
-/// A view that is split into two halves. The two halves are assigned to child
-/// views. The split can be either horizontal or vertical.
+/// A branch within the `PaneView`. This divides its pane into multiple
+/// sections (or branches), each of which is used by a child.
 #[derive(Debug)]
-struct SplitView {
-    direction: Direction,
-    children: [Box<dyn View>; 2],
+struct PaneBranch {
+    /// The direction that the pane is split.
+    axis: SplitDirection,
+    /// The child nodes of this branch.
+    nodes: Vec<PaneNode>,
+    /// The percentage of the pane used by each node. `nodes` and `percentage`
+    /// should always be the same length. Additionally, the sum of `percentage`
+    /// should be 100.
+    percentage: Vec<u16>,
+    /// The child that currently has focus.
+    focused: usize,
 }
 
-impl View for SplitView {
-    fn render(&self, app: &App, area: Rect, buf: &mut Buffer) {
-        let layout = Layout::default()
-            .direction(self.direction)
-            .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+impl PaneBranch {
+    fn new(axis: SplitDirection, nodes: Vec<PaneNode>) -> Self {
+        todo!()
+    }
+
+    fn split(&mut self, direction: SplitDirection, new_view: Box<dyn View>) {
+        todo!()
+    }
+}
+
+impl View for PaneBranch {
+    fn render(&self, area: Rect, buf: &mut Buffer) {
+        assert_eq!(self.percentage.iter().sum::<u16>(), 100);
+        assert_eq!(self.percentage.len(), self.nodes.len());
+
+        let layouts = Layout::default()
+            .direction(self.axis.into())
+            .constraints(self.percentage.iter().map(|x| Constraint::Percentage(*x)))
             .split(area);
-        self.children[0].render(app, layout[0], buf);
-        self.children[1].render(app, layout[1], buf);
+
+        for itr in self.nodes.iter().zip(layouts.iter()) {
+            let (node, layout) = itr;
+            node.render(*layout, buf);
+        }
+    }
+
+    fn update(&mut self, command: Command, queue: &mut PushQueue<Command>) {
+        self.nodes[self.focused].update(command, queue);
     }
 }

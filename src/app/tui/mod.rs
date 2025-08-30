@@ -43,7 +43,7 @@ mod view;
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
-use std::{sync::mpsc, thread};
+use std::{cell::RefCell, collections::VecDeque, rc::Rc, sync::mpsc, thread};
 
 use log::debug;
 use ratatui::{
@@ -51,9 +51,9 @@ use ratatui::{
     DefaultTerminal,
 };
 use statusline::StatusLine;
-use view::View;
+use view::{PaneView, View};
 
-use crate::core::Galaxy;
+use crate::{core::Galaxy, util::queue::PushQueue};
 
 use super::Result;
 
@@ -77,25 +77,49 @@ pub enum Mode {
 /// the command.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Command {
-    /// Attempt to exit immediately
+    /// Attempt to exit immediately.
     Quit,
-    /// Redraw the screen, no other operations are necessary
+    /// Redraw the screen, no other operations are necessary.
     Redraw,
-    /// Update the application's mode to be the mode provided
+    /// Update the application's mode to be the mode provided.
     UpdateMode(Mode),
-    /// Move the focused view in the specified direction
+    /// Move the focused view in the specified direction.
     MoveFocus(MovementDirection),
-    /// Move the cursor in the specified direction
+    /// Move the cursor in the specified direction.
     MoveCursor(MovementDirection),
+    /// Split the currently focused view into two using the given direction. The
+    /// newly created view should be focused.
+    SplitView(SplitDirection),
 }
 
+/// A direction that things can move in.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MovementDirection {
     Up,
     Down,
     Left,
     Right,
+}
+
+/// A direction that things can be split in.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SplitDirection {
     Horizontal,
+    Vertical,
+}
+
+impl Into<ratatui::layout::Direction> for SplitDirection {
+    fn into(self) -> ratatui::layout::Direction {
+        // NOTE: ratatui defines its layout direction in terms of stacking, not
+        // in terms of where the split is. Thus for a horizontal split, elements
+        // are stacked vertically, and vice versa. I find it easier to think
+        // about things based on how they split, not on how they stack, so I
+        // have decided to use a separate type with inverted values.
+        match self {
+            SplitDirection::Horizontal => ratatui::layout::Direction::Vertical,
+            SplitDirection::Vertical => ratatui::layout::Direction::Horizontal,
+        }
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -108,13 +132,14 @@ pub enum MovementDirection {
 #[derive(Debug)]
 struct App {
     /// All Stars, Planets, and Comets.
-    galaxy: Galaxy,
+    #[allow(dead_code)]
+    galaxy: Rc<RefCell<Galaxy>>,
 
     /// The current mode of the application.
     mode: Mode,
 
     /// The root view of the application.
-    view: Box<dyn view::View>,
+    view: PaneView,
     /// The status line displayed at the bottom of the screen.
     status: statusline::StatusLine,
 }
@@ -125,11 +150,12 @@ impl App {
     /// # Errors
     /// - Will error if loading the `Galaxy` fails
     fn new() -> Result<Self> {
+        let galaxy = Rc::new(RefCell::new(Galaxy::load()?));
         Ok(Self {
-            galaxy: Galaxy::load()?,
+            galaxy: galaxy.clone(),
             mode: Mode::default(),
-            view: Box::new(view::OpeningView),
-            status: StatusLine::default(),
+            view: PaneView::new(galaxy.clone()),
+            status: StatusLine::new(galaxy),
         })
     }
 
@@ -144,24 +170,39 @@ impl App {
     /// - Error while drawing to terminal
     /// - Error while receiving commands from the channel
     fn run(mut self, mut terminal: DefaultTerminal, rx: mpsc::Receiver<Command>) -> Result<()> {
-        loop {
+        'outer: loop {
             terminal.draw(|frame| {
                 let layout = Layout::default()
                     .direction(ratatui::layout::Direction::Vertical)
                     .constraints([Constraint::Fill(0), Constraint::Length(2)])
                     .split(frame.area());
-                self.view.render(&self, layout[0], frame.buffer_mut());
-                self.status.render(&self, layout[1], frame.buffer_mut());
+                self.view.render(layout[0], frame.buffer_mut());
+                self.status.render(layout[1], frame.buffer_mut());
             })?;
 
             let command = rx.recv()?;
             debug!("Application received command from channel: {command:?}");
-            match command {
-                Command::Quit => break Ok(()),
-                Command::Redraw => {} // will redraw on next iteration of loop
-                Command::UpdateMode(mode) => self.mode = mode,
-                Command::MoveCursor(direction) => todo!(),
-                Command::MoveFocus(direction) => todo!(),
+            let mut commands = VecDeque::from([command]);
+
+            loop {
+                let command = commands.pop_front().unwrap();
+                debug!("Application processing command: {command:?}");
+
+                let mut queue = PushQueue::from(commands);
+                match command {
+                    Command::Quit => break 'outer Ok(()),
+                    Command::Redraw => {} // will redraw on next iteration of loop
+                    Command::UpdateMode(mode) => {
+                        self.mode = mode;
+                        self.status.update(Command::UpdateMode(mode), &mut queue);
+                    }
+                    command => self.view.update(command, &mut queue),
+                }
+                commands = queue.into();
+
+                if commands.len() == 0 {
+                    break;
+                }
             }
         }
     }

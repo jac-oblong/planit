@@ -24,9 +24,9 @@
 ////////////////////////////////////////////////////////////////////////////
 
 /*!
- * The statusline. This displays the current mode of the application, the title
- * of the loaded galaxy, etc. This also provides the area that commands are
- * typed.
+ * Contains the implementation for the opening view. This is the view shown when
+ * the application is originally opened. It shows some information about the
+ * application and some initial guidance on how to use the app.
  */
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -35,19 +35,29 @@
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
-use std::{cell::RefCell, rc::Rc};
-
 use ratatui::{
     buffer::Buffer,
-    layout::Rect,
+    layout::{Alignment, Constraint, Rect},
     style::{Color, Style},
-    text::{Line, Span},
-    widgets::Widget,
+    text::Line,
+    widgets::{Block, BorderType, Borders, Padding, Paragraph, Widget},
 };
 
-use crate::{app::tui::Mode, core::Galaxy, util::queue::PushQueue};
+use crate::util::{queue::PushQueue, tui::center_with_constraints};
 
-use super::{view::View, Command};
+use super::{super::Command, View};
+
+////////////////////////////////////////////////////////////////////////////////
+//                                                                            //
+//                                   CONSTS                                   //
+//                                                                            //
+////////////////////////////////////////////////////////////////////////////////
+
+/// The padding between the text inside the box and the box itself
+const VERTICAL_BOX_PADDING: u16 = 2;
+const HORIZONTAL_BOX_PADDING: u16 = 2 * VERTICAL_BOX_PADDING;
+/// The size of the box (1 for left / top plus 1 for right / bottom)
+const BOX_SIZE: u16 = 2;
 
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
@@ -55,50 +65,47 @@ use super::{view::View, Command};
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
-/// Handles all functionality related to the statusline at the bottom of the
-/// application screen.
+/// The opening view. This is the view that is shown when the app is first
+/// opened. This includes things like version, helpful keybinds, etc.
 #[derive(Debug)]
-pub struct StatusLine {
-    /// Reference to the global galaxy.
-    galaxy: Rc<RefCell<Galaxy>>,
-    /// The current mode of the application.
-    mode: Mode,
-}
+pub struct OpeningView;
 
-impl StatusLine {
-    /// Creates a new status line with the default mode.
-    ///
-    /// # Arguments
-    /// - `galaxy`: A reference to the global galaxy.
-    pub fn new(galaxy: Rc<RefCell<Galaxy>>) -> Self {
-        Self {
-            galaxy,
-            mode: Mode::default(),
-        }
-    }
-}
-
-impl View for StatusLine {
+impl View for OpeningView {
     fn render(&self, area: Rect, buf: &mut Buffer) {
-        let mode = match self.mode {
-            Mode::Normal => "[NORMAL]  ",
-            Mode::Insert => "[INSERT]  ",
-            Mode::Command => "[COMMAND] ",
-        };
-        let mode = match self.mode {
-            Mode::Normal => Span::from(mode).style(Style::default().fg(Color::Green)),
-            Mode::Insert => Span::from(mode).style(Style::default().fg(Color::Magenta)),
-            Mode::Command => Span::from(mode).style(Style::default().fg(Color::Blue)),
-        };
-        let title = Span::from(self.galaxy.borrow().get_title().clone());
-        let line = Line::from(vec![mode, title]).style(Style::default().bg(Color::Black));
-        line.render(area, buf);
+        let lines = vec![
+            Line::from(env!("CARGO_PKG_NAME")).style(Style::default().fg(Color::Magenta)),
+            Line::from(env!("CARGO_PKG_DESCRIPTION")),
+            Line::from(""),
+            Line::from(format!("version: {}", env!("CARGO_PKG_VERSION"))),
+            Line::from(format!("repo: {}", env!("CARGO_PKG_REPOSITORY"))),
+        ];
+
+        let height = lines.len();
+        let width = lines
+            .iter()
+            .map(|x| match x.spans.get(0) {
+                Some(span) => span.content.len(),
+                None => 0,
+            })
+            .max()
+            .unwrap();
+        let area = center_with_constraints(
+            area,
+            Constraint::Length((width as u16) + 2 * HORIZONTAL_BOX_PADDING + BOX_SIZE),
+            Constraint::Length((height as u16) + 2 * VERTICAL_BOX_PADDING + BOX_SIZE),
+        );
+
+        let paragraph = Paragraph::new(lines).alignment(Alignment::Center).block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_type(BorderType::Rounded)
+                .padding(Padding::symmetric(
+                    HORIZONTAL_BOX_PADDING,
+                    VERTICAL_BOX_PADDING,
+                )),
+        );
+        paragraph.render(area, buf);
     }
 
-    fn update(&mut self, command: Command, _: &mut PushQueue<Command>) {
-        match command {
-            Command::UpdateMode(mode) => self.mode = mode,
-            _ => {}
-        }
-    }
+    fn update(&mut self, _: Command, _: &mut PushQueue<Command>) {}
 }
