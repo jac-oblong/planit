@@ -5,6 +5,9 @@ may find it useful as well. It really only exists because I wanted an offline pr
 management / planning application (that was preferably terminal-based) and I did not find
 any existing solutions that worked for my needs.
 
+[!NOTE]
+This project is not feature complete and is currently on hold. It is unknown when it will be resumed.
+
 ## Terminology
 
 Given the name of the application, it only makes sense for the names of things to be celestial
